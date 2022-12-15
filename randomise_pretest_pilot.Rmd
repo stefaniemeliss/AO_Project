@@ -1,0 +1,142 @@
+---
+title: "Create Randomised Pretest Questions"
+author: "Stefanie Meliss"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list = ls())
+```
+
+```{r, include=FALSE, echo=F}
+# ---------- define all questions and corresponding answers ----------
+
+# q1
+q01_q  <- "Reading comprehension can be described as relying on two capacities: the ability to recognise words and build meaning from words. These is generally described as..."
+q01_c  <- "Word recognition and language comprehension."
+q01_d1 <- "Word recognition and fluency." 
+q01_d2 <- "Word recognition and reading comprehension." 
+q01_d3 <- "Word recognition and background knowledge."  
+
+# q2
+q02_q  <- "An orthography is..." 
+q02_d1 <- "The set of conventions associated with a phonics programme." 
+q02_d2 <- "The set of conventions associated with a spoken language." 
+q02_c  <- "The set of conventions associated with a written language." 
+q02_d3 <- "The set of conventions associated with a handwriting system."
+
+# q3
+q03_q <- "A phoneme can be thought of as..." 
+q03_c  <- "The smallest chunk of spoken sound that can distinguish one word from another."
+q03_d1 <- "Any chunk of sound that is smaller than a whole word."
+q03_d2 <- "The chunk of sound associated with a syllable."
+q03_d3 <- "The chunk of sound associated with a morpheme." 
+
+# q4
+q04_q    <- "A grapheme is an individual letter or a group of letters that represents... "
+q04_d1 <- "A syllable."
+q04_d2 <- "A morpheme." 
+q04_d3 <- "A word."
+q04_c  <- "A phoneme." 
+
+# q5
+q05_q  <- "Alongside chunks of spoken sound, the English writing system represents the smallest chunks w05thin w5rds that are associated with meaning called..."
+q05_d1 <- "Syntactic identifiers."
+q05_c  <- "Morphemes."
+q05_d2 <- "Lexemes."
+q05_d3 <- "Graphemes."
+
+# q6
+q06_q  <- "Reading fluency is commonly identified through three properties of oral reading called..." 
+q06_d1 <- "Accuracy, automaticity and semantics." 
+q06_d2 <- "Accuracy, automaticity and flow."
+q06_d3 <- "Accuracy, automaticity and syntax."
+q06_c  <- "Accuracy, automaticity and prosody."
+
+# q7
+q07_q  <- "Reading fluency contributes to reading comprehension by..." 
+q07_c  <- "Freeing up the cognitive resources that can be devoted to building meaning from words." 
+q07_d1 <- "Allowing readers to flow through text without identifying all of the words on a page."
+q07_d2 <- "Significantly reducing the pupil’s reliance on background knowledge."
+q07_d3 <- "Increasing pupils’ working memory capacity."
+
+# q8
+q08_q <- "Tier 3 vocabulary can be thought of as words that..."
+q08_d1 <- "Pupils are likely to learn through their everyday interactions."
+q08_d2 <- "Are more likely to be found in an academic context and *are not* associated with a given academic subject."
+q08_d3 <- "Are found primarily in narrative texts."
+q08_c  <- "Are more likely to be found in an academic context and *are* associated with a particular academic subject or subjects." 
+
+# q9
+q09_q  <- "Which of these comprehension strategies does **not** have a sound basis in evidence?"
+q09_d1 <- "Questioning."
+q09_c  <- "Extrapolating."
+q09_d2 <- "Summarising."
+q09_d3 <- "Clarifying."
+
+# q10
+q10_q  <- "Pupils make inferences when they read..." 
+q10_c  <- "All types of text."
+q10_d1 <- "Fiction texts only." 
+q10_d2 <- "Non-fiction texts only." 
+q10_d3 <- "But not when they read independently."
+
+# ---------- combine all questions and answers into data frame ----------
+
+# grab matching elements and combine into lists
+questions <- lapply(ls(pattern="_q"), get)
+correct <- lapply(ls(pattern="_c"), get)
+distractor1 <- lapply(ls(pattern="_d1"), get)
+distractor2 <- lapply(ls(pattern="_d2"), get)
+distractor3 <- lapply(ls(pattern="_d3"), get)
+
+# convert lists into dataframes
+pretest <- do.call(rbind.data.frame, questions)
+names(pretest) <- "questions"
+
+tmp <- do.call(rbind.data.frame, correct)
+names(tmp) <- "correct"
+pretest$correct <- tmp$correct
+
+tmp <- do.call(rbind.data.frame, distractor1)
+names(tmp) <- "distractor1"
+pretest$distractor1 <- tmp$distractor1
+
+tmp <- do.call(rbind.data.frame, distractor2)
+names(tmp) <- "distractor2"
+pretest$distractor2 <- tmp$distractor2
+
+tmp <- do.call(rbind.data.frame, distractor3)
+names(tmp) <- "distractor3"
+pretest$distractor3 <- tmp$distractor3
+
+rm(tmp)
+```
+
+
+```{r, results='asis', echo=F}
+knitr::kable(pretest, caption = "Pretest Questions with Correct Answers and Distractors")
+
+```
+
+```{r, include=FALSE, echo=F}
+# ---------- randomise questions and answers ----------
+
+set.seed(1212) # make reproducible
+q_rand <- pretest[sample(1:nrow(pretest)), ] # shuffle order of questions
+names(q_rand) <- c("Question", "Option_1", "Option_2", "Option_3", "Option_4") # rename cols
+
+# loop through all rows and shuffle answer options i.e., columns 2:ncol()
+for (r in 1:nrow(q_rand)) {
+  q_rand[r, 2:ncol(q_rand)] <-  q_rand[r,sample( 2:ncol(q_rand))]
+  
+}
+```
+
+
+```{r, results='asis', echo=F}
+knitr::kable(q_rand, caption = "Pretest Questions Randomised")
+
+```
