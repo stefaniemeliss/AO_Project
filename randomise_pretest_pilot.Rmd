@@ -14,7 +14,7 @@ rm(list = ls())
 # ---------- define all questions and corresponding answers ----------
 
 # q1
-q01_q  <- "Reading comprehension can be described as relying on two capacities: the ability to recognise words and build meaning from words. These is generally described as..."
+q01_q  <- "Reading comprehension can be described as relying on two capacities: the ability to recognise words and build meaning from words. These are generally described as..."
 q01_c  <- "Word recognition and language comprehension."
 q01_d1 <- "Word recognition and fluency." 
 q01_d2 <- "Word recognition and reading comprehension." 
@@ -42,7 +42,7 @@ q04_d3 <- "A word."
 q04_c  <- "A phoneme." 
 
 # q5
-q05_q  <- "Alongside chunks of spoken sound, the English writing system represents the smallest chunks w05thin w5rds that are associated with meaning called..."
+q05_q  <- "Alongside chunks of spoken sound, the English writing system represents the smallest chunks within words that are associated with meaning called..."
 q05_d1 <- "Syntactic identifiers."
 q05_c  <- "Morphemes."
 q05_d2 <- "Lexemes."
@@ -71,7 +71,7 @@ q08_c  <- "Are more likely to be found in an academic context and *are* associat
 
 # q9
 q09_q  <- "Which of these comprehension strategies does **not** have a sound basis in evidence?"
-q09_d1 <- "Questioning."
+q09_d1 <- "Self-questioning."
 q09_c  <- "Extrapolating."
 q09_d2 <- "Summarising."
 q09_d3 <- "Clarifying."
@@ -86,15 +86,15 @@ q10_d3 <- "But not when they read independently."
 # ---------- combine all questions and answers into data frame ----------
 
 # grab matching elements and combine into lists
-questions <- lapply(ls(pattern="_q"), get)
+question <- lapply(ls(pattern="_q"), get)
 correct <- lapply(ls(pattern="_c"), get)
 distractor1 <- lapply(ls(pattern="_d1"), get)
 distractor2 <- lapply(ls(pattern="_d2"), get)
 distractor3 <- lapply(ls(pattern="_d3"), get)
 
 # convert lists into dataframes
-pretest <- do.call(rbind.data.frame, questions)
-names(pretest) <- "questions"
+pretest <- do.call(rbind.data.frame, question)
+names(pretest) <- "question"
 
 tmp <- do.call(rbind.data.frame, correct)
 names(tmp) <- "correct"
@@ -117,16 +117,15 @@ rm(tmp)
 
 
 ```{r, results='asis', echo=F}
-knitr::kable(pretest, caption = "Pretest Questions with Correct Answers and Distractors")
-
+knitr::kable(pretest, caption = "Pretest question with Correct Answers and Distractors")
 ```
 
 ```{r, include=FALSE, echo=F}
-# ---------- randomise questions and answers ----------
+# ---------- randomise question and answers ----------
 
 set.seed(1212) # make reproducible
-q_rand <- pretest[sample(1:nrow(pretest)), ] # shuffle order of questions
-names(q_rand) <- c("Question", "Option_1", "Option_2", "Option_3", "Option_4") # rename cols
+q_rand <- pretest[sample(1:nrow(pretest)), ] # shuffle order of question
+names(q_rand) <- c("question", "option1", "option2", "option3", "option4") # rename cols
 
 # loop through all rows and shuffle answer options i.e., columns 2:ncol()
 for (r in 1:nrow(q_rand)) {
@@ -137,6 +136,16 @@ for (r in 1:nrow(q_rand)) {
 
 
 ```{r, results='asis', echo=F}
-knitr::kable(q_rand, caption = "Pretest Questions Randomised")
+knitr::kable(q_rand, caption = "Pretest question Randomised")
+```
+
+```{r, include=F}
+q_rand$order <- paste0("Q",1:nrow(q_rand))
+
+order <- q_rand[, c("question", "order")]
+
+pretest <- merge(pretest, order, by = "question")
+write.csv(pretest, "pretest.csv", row.names = F)
 
 ```
+
