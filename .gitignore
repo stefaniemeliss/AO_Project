@@ -4,4 +4,4 @@
 .Ruserdata
 .Rproj
 .html
-.csv
+*.csv
