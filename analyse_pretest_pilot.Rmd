@@ -1,0 +1,295 @@
+---
+title: "Analyse Results Of Pretest Pilot"
+author: "Stefanie Meliss"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list = ls())
+library(ggplot2)
+
+
+# read in responses (choice text extracted)
+df <- read.csv("generated_responses_text.csv", stringsAsFactors = F)
+
+# remove first two rows
+df <- df[grepl("2023", df$StartDate),]
+
+# read in questionnaire files
+quest <- read.csv("pretest.csv", stringsAsFactors = F)
+quest$order <- factor(quest$order, levels = paste0("Q",1:nrow(quest)))
+rand <- read.csv("pretest_rand.csv", stringsAsFactors = F)
+quest <- merge(quest, rand, by = c("question", "order"))
+
+# create long format of rand quest (for later merging)
+rand <- reshape2::melt(rand, id = c("question", "order"))
+
+# define variables for plotting
+ambition_coral <- "#E94B58"
+ambition_charcole <- "#2C3C3B"
+```
+
+### Performance in the prior knowledge questions
+
+```{r, results='asis', fig.align = "center", echo = F}
+# extract ordered question index
+qs <-sort(quest$order)
+
+# loop through all questions
+for (q in 1:length(qs)) {
+  
+  # determine correct answer string
+  correct <- quest$correct[quest$order == as.character(qs[q])]
+  #correct <- gsub("[*]","", correct)
+  #correct <- gsub("[*]","", correct)
+  
+  # print to console/markdown
+  cat("  \n#### ", as.character(qs[q]))
+  cat("  \n")
+  cat("  \n**Question: ", quest$question[quest$order == as.character(qs[q])],"**", "*[ correct: ", correct, "]*")
+  cat("  \n\nOption 1: ", quest$option1[quest$order == as.character(qs[q])])
+  cat("  \n Option 2: ", quest$option2[quest$order == as.character(qs[q])])
+  cat("  \n Option 3: ", quest$option3[quest$order == as.character(qs[q])])
+  cat("  \n Option 4: ", quest$option4[quest$order == as.character(qs[q])])
+  
+  # check whether all possible response catergories were used
+  #cat("  \n\nUnique responses (", length(unique(df[,as.character(qs[q])])), "): ", unique(df[,as.character(qs[q])]), "  \n\n")
+  
+  # create response and score variable for each question
+  df[,paste0(qs[q], "_response")] <- df[,as.character(qs[q])]
+  df[,paste0(qs[q], "_score")] <- ifelse(df[,as.character(qs[q])] == correct, 1, 0)
+  
+  # extract information from rand: labels each answer option according to its order of occurrence and ontains question text
+  tmp <- subset(rand, order == as.character(qs[q]))
+  tmp$order <- NULL
+  names(tmp) <- c(paste0(qs[q], "_question"), paste0(qs[q], "_label"), paste0(qs[q], "_response"))
+  
+  # select subset of columns of df --> allows later merging to be "prettier" with respect to the order of columns
+  tmp2 <-  df[,c("ResponseId", paste0(qs[q], "_response"))] 
+  
+  # merge tmp objects
+  tmp2 <- merge(tmp2, tmp, by = paste0(qs[q], "_response"))
+  tmp2[,paste0(qs[q], "_response")] <- NULL
+  df <- merge(df, tmp2, by = "ResponseId")
+  
+  # remove tmp objects
+  rm(tmp, tmp2)
+  
+  
+  # create this tmp column where the score (i.e., 0 or 1) is transformed into a character variable
+  # will be used to determine fill colour in bar graphs
+  df[,as.character(qs[q])] <- as.character(df[, paste0(qs[q], "_score")])
+  
+  plt <- ggplot(df, aes(x = get(paste0(qs[q], "_label")), fill = get( as.character(qs[q]) ))) +
+    geom_bar(aes(y = (after_stat(count))/sum(after_stat(count)))) +
+    theme_bw() +
+    xlab("Answer options") +
+    ylab("Proportion selected") + coord_cartesian(ylim = c(0,1)) +
+    #ggtitle(unique(df[, paste0(qs[q], "_question")])) +
+    scale_fill_manual(values = c(ambition_charcole, ambition_coral)) +
+    theme(legend.position = "none") +
+    scale_x_discrete(labels = paste("Option", 1:4)) +
+    scale_y_continuous(labels = scales::label_percent())
+  
+  print(plt)
+  
+  # delete tmp column
+  df[,as.character(qs[q])] <- NULL
+  
+  cat("  \n")
+  
+  
+}
+```
+
+```{r, include=FALSE}
+
+# only select the ID and Q*_score columns
+desc <- df[,c(grepl("ResponseId", names(df)) | grepl("_score", names(df)))]
+
+# convert them from wide into long format where variable describes Q*_score
+desc <- reshape2::melt(desc)
+
+# use data in long format as input for psych::describeBy
+desc <-psych::describeBy(desc$value, desc$variable)
+
+# transform from list to df
+desc <- do.call(rbind.data.frame, desc)
+
+# overwrite vars column with identifiable row names info
+desc$vars <- gsub("_score", "", row.names(desc))
+desc$vars <- factor(desc$vars, levels = paste0("Q",1:nrow(desc)))
+row.names(desc) <- NULL
+
+# result: descriptives for all questions presented
+```
+
+#### Comparison to chance-level peformance
+
+```{r, echo = F, results='asis', fig.align='center'}
+
+ggplot(desc, aes(x = vars, y = mean)) +
+  geom_bar(stat = "identity", fill = ambition_coral) +
+  geom_errorbar(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), width=.2) +
+  geom_hline(yintercept = 0.25, linetype="dashed") +
+  theme_bw() + 
+  coord_cartesian(ylim = c(0,1)) + scale_y_continuous(labels = scales::label_percent()) +
+  ylab("Proportion correct") +
+  xlab("Questions") 
+```
+
+### Feedback survey  
+  
+[add text here...]  
+[...]  
+[...]  
+
+
+```{r, echo=FALSE, results='asis', fig.align='center'}
+# rename variables that contain feedbak info
+names(df)[names(df) == "quest_amount_1"] <- "quest_amount"
+names(df)[names(df) == "quest_difficulty_1"] <- "quest_diff"
+names(df)[names(df) == "quest_rating_1"] <- "quest_rat_concise"
+names(df)[names(df) == "quest_rating_2"] <- "quest_rat_understand"
+names(df)[names(df) == "quest_rating_3"] <- "quest_rat_compreh"
+names(df)[names(df) == "quest_rating_4"] <- "quest_rat_unamb"
+
+# --- amount ---
+
+# declare factor
+df$quest_amount <- factor(df$quest_amount, levels = c("too few", "few", "neither nor", "many", "too many"))
+# assign numeric value
+df$quest_amount_score <- ifelse(df$quest_amount == "too few", -2,
+                                ifelse(df$quest_amount == "few", -1,
+                                       ifelse(df$quest_amount == "neither nor", 0,
+                                              ifelse(df$quest_amount == "many", 1,
+                                                     ifelse(df$quest_amount == "too many", 2,
+                                                            NA)))))
+
+# calculate descriptives in table
+tmp <- psych::describe(df$quest_amount_score)
+
+# print to markdown
+cat("  \n#### Amount of questions")
+cat("  \n")
+
+
+plt <- ggplot(df, aes(x = quest_amount)) +
+  geom_bar(aes(y = (after_stat(count))/sum(after_stat(count))), fill = ambition_charcole) +
+  theme_bw() +
+  coord_cartesian(ylim = c(0,1)) + scale_y_continuous(labels = scales::label_percent()) +
+  xlab("Answer options") +
+  ylab("Proportion") #+
+  #ggtitle("Amount questions") 
+
+print(plt)
+
+print(knitr::kable(tmp))
+cat('\n\n<!-- -->\n\n')
+
+# --- amount ---
+
+# declare factor
+df$quest_diff <- factor(df$quest_diff, levels = c("too easy", "easy", "neither nor", "difficult", "too difficult"))
+# assign numeric value 
+df$quest_diff_score <- ifelse(df$quest_diff == "too easy", -2,
+                              ifelse(df$quest_diff == "easy", -1,
+                                     ifelse(df$quest_diff == "neither nor", 0,
+                                            ifelse(df$quest_diff == "difficult", 1,
+                                                   ifelse(df$quest_diff == "too difficult", 2,
+                                                          NA)))))
+# calculate descriptives in table
+tmp <- psych::describe(df$quest_diff_score)
+# print to markdown
+cat("  \n#### Difficulty of questions")
+cat("  \n")
+
+plt <- ggplot(df, aes(x = quest_diff)) +
+  geom_bar(aes(y = (after_stat(count))/sum(after_stat(count))), fill = ambition_charcole) +
+  theme_bw() +
+  coord_cartesian(ylim = c(0,1)) + scale_y_continuous(labels = scales::label_percent()) +
+  xlab("Answer options") +
+  ylab("Proportion") #+
+  #ggtitle("Difficulty questions") 
+
+print(plt)
+
+
+print(knitr::kable(tmp))
+cat('\n\n<!-- -->\n\n')
+
+
+# --- ratings of questions ---
+cat("  \n#### Ratings of questions")
+cat("  \n")
+
+vs <- names(df)[grepl("_rat_", names(df)) ]
+for (v in 1:length(vs)) {
+  
+  # declare factor
+  df[,vs[v]] <- factor(df[,vs[v]], levels = c("Strongly disagree", "Somewhat disagree", "Neither agree nor disagree", "Somewhat agree", "Strongly agree"))
+  
+  # assign numeric value
+  df[,paste0(vs[v], "_score")] <- ifelse(df[,vs[v]] == "Strongly disagree", -2,
+                                         ifelse(df[,vs[v]] == "Somewhat disagree", -1,
+                                                ifelse(df[,vs[v]] == "Neither agree nor disagree", 0,
+                                                       ifelse(df[,vs[v]] == "Somewhat agree", 1,
+                                                              ifelse(df[,vs[v]] == "Strongly agree", 2,
+                                                                     NA)))))
+  
+  
+  df[,paste0(vs[v], "_score")] <- df[,paste0(vs[v], "_score")] + 3
+  
+  #cat("\nUnique responses (", length(unique(df[,vs[v]])), "): ", unique(df[,vs[v]]), "\n\n")
+}
+
+# select subset of variables
+desc <- df[,c(grepl("ResponseId", names(df)) | grepl("_rat_", names(df)))]
+desc <- desc[,c(grepl("ResponseId", names(desc)) | grepl("score", names(desc)))]
+
+# tranform them into long format
+desc <- reshape2::melt(desc)
+
+# compute descriptive stats, seperately for each rating
+desc <-psych::describeBy(desc$value, desc$variable)
+
+# tranform list to df
+desc <- do.call(rbind.data.frame, desc)
+
+# create better identifier
+desc$vars <- gsub("quest_rat_", "", row.names(desc))
+desc$vars <- gsub("_score", "", desc$vars)
+row.names(desc) <- NULL
+
+# plot data as bargraph
+ggplot(desc, aes(x = vars, y = mean)) +
+  geom_bar(stat = "identity", fill = ambition_charcole) +
+  geom_errorbar(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), width=.2) +
+  geom_hline(yintercept = 0.25, linetype="dashed") +
+  theme_bw() + coord_cartesian(ylim = c(1,5)) +
+  ylab("Average Rating") +
+  xlab("Items") 
+
+# show descriptive stats
+print(knitr::kable(desc))
+cat('\n\n<!-- -->\n\n')
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
