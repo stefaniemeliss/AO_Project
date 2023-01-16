@@ -66,11 +66,14 @@ q07_d3 <- "Increasing pupils’ working memory capacity."
 q08_q <- "Tier 3 vocabulary can be thought of as words that..."
 q08_d1 <- "Pupils are likely to learn through their everyday interactions."
 q08_d2 <- "Are more likely to be found in an academic context and *are not* associated with a given academic subject."
+#q08_d2 <- "Are more likely to be found in an academic context and are not associated with a given academic subject."
 q08_d3 <- "Are found primarily in narrative texts."
 q08_c  <- "Are more likely to be found in an academic context and *are* associated with a particular academic subject or subjects." 
+#q08_c  <- "Are more likely to be found in an academic context and are associated with a particular academic subject or subjects." 
 
 # q9
 q09_q  <- "Which of these comprehension strategies does **not** have a sound basis in evidence?"
+#q09_q  <- "Which of these comprehension strategies does not have a sound basis in evidence?"
 q09_d1 <- "Self-questioning."
 q09_c  <- "Extrapolating."
 q09_d2 <- "Summarising."
@@ -145,7 +148,16 @@ q_rand$order <- paste0("Q",1:nrow(q_rand))
 order <- q_rand[, c("question", "order")]
 
 pretest <- merge(pretest, order, by = "question")
-write.csv(pretest, "pretest.csv", row.names = F)
 
+for (c in 1:ncol(pretest)) {
+  pretest[, c] <- gsub("[*]","", pretest[,c])
+}
+
+for (c in 1:ncol(q_rand)) {
+  q_rand[, c] <- gsub("[*]","", q_rand[,c])
+}
+
+write.csv(pretest, "pretest.csv", row.names = F)
+write.csv(q_rand, "pretest_rand.csv", row.names = F)
 ```
 
