@@ -1,5 +1,5 @@
 ---
-title: "Analyse Results Of Pretest Pilot"
+title: "Piloting the prior knowledge assessment"
 author: "Stefanie Meliss"
 date: "`r Sys.Date()`"
 output: html_document
@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 rm(list = ls())
 library(ggplot2)
+library(GGally)
 
 
 # read in responses (choice text extracted)
@@ -31,37 +32,49 @@ ambition_coral <- "#E94B58"
 ambition_charcole <- "#2C3C3B"
 ```
 
-### Performance in the prior knowledge questions
+### Description of the pilot study
 
-```{r, results='asis', fig.align = "center", echo = F}
+The purpose of this pilot study was to administer the prior knowledge assessment to teachers to determine whether the items possess the right level of difficulty. The prior knowledge assessment was designed for the use in this project (by CS & SA). In addition to an empirical variance measure for each of the ten prior knowledge questions, we also collected feedback on the assessment.  
+
+##### Participants  
+
+Participants were recruited using Twitter. The pilot study was set up in Qualtrics and a distribution link was shared (by SS). In total, the survey was completed by **XX** participants. The project protocol was approved by University College London's ethics committee. Participants were informed about the purpose and provided informed consent to participate in the pilot study.   
+
+##### Materials and measurements  
+
+The prior knowledge assessment consisted of ten four-alternative forced choice questions/statements. For each presented item (e.g., "A grapheme is an individual letter or a group of letters that represents…" ), participants were instructed to select the answer out of four alternatives they thought as correct (e.g., "A syllable.", "A phoneme.", "A word.", "A morpheme."). Participants were encouraged to guess but specifically asked to not look up any correct answers. The items and corresponding options were presented in randomised, but constant order, i.e., a custom-made R script was used to randomise the presentation order and the same order was used across all participants.  
+The feedback survey consisted of in total six items. We asked participants to rate the amount and difficulty of questions (bipolar 5-point Likert scale from -2 = "too few"/"too easy" to +2 = "too many"/"too difficult"). Participants were additionally instructed to choose the midpoint to indicate that the questions were neither too few/too easy nor too many/too difficult. Lastly, a 5-point Likert scale (1 = "strongly disagree", 5 = "strongly agree") was presented to participants to obtain ratings regarding the wording of the questions (e.g., "The questions in the multiple choice test are worded in a way that is concise.") For each ratings, an optional free-text input text box was added, offering participants to opportunity to expand on their rating.  
+
+##### Procedure  
+
+Upon following the Qualtrics survey distribution link, participants were informed about the purpose of the study and asked to provide consent. No identifiable information was recorded but participants were asked to create a study pseudonym should they wish to withdraw their consent. Participants then completed the prior knowledge assessment (presented on a single page) followed by the feedback survey (presented on one page). Participants took on average **xx** min to complete the pilot study.  
+
+
+### Performance in the prior knowledge assessment
+
+```{r, include=F}
 # extract ordered question index
 qs <-sort(quest$order)
 
-# loop through all questions
+binom <- data.frame(q = character(length(qs)),
+                    n_success = numeric(length(qs)),
+                    n_trial = numeric(length(qs)),
+                    p_val = numeric(length(qs)),
+                    ci_lower = numeric(length(qs)),
+                    ci_upper = numeric(length(qs)))
+
+
+# --- loop through all questions to compute score, assign label, etc --- #
 for (q in 1:length(qs)) {
   
   # determine correct answer string
   correct <- quest$correct[quest$order == as.character(qs[q])]
-  #correct <- gsub("[*]","", correct)
-  #correct <- gsub("[*]","", correct)
-  
-  # print to console/markdown
-  cat("  \n#### ", as.character(qs[q]))
-  cat("  \n")
-  cat("  \n**Question: ", quest$question[quest$order == as.character(qs[q])],"**", "*[ correct: ", correct, "]*")
-  cat("  \n\nOption 1: ", quest$option1[quest$order == as.character(qs[q])])
-  cat("  \n Option 2: ", quest$option2[quest$order == as.character(qs[q])])
-  cat("  \n Option 3: ", quest$option3[quest$order == as.character(qs[q])])
-  cat("  \n Option 4: ", quest$option4[quest$order == as.character(qs[q])])
-  
-  # check whether all possible response catergories were used
-  #cat("  \n\nUnique responses (", length(unique(df[,as.character(qs[q])])), "): ", unique(df[,as.character(qs[q])]), "  \n\n")
   
   # create response and score variable for each question
   df[,paste0(qs[q], "_response")] <- df[,as.character(qs[q])]
   df[,paste0(qs[q], "_score")] <- ifelse(df[,as.character(qs[q])] == correct, 1, 0)
   
-  # extract information from rand: labels each answer option according to its order of occurrence and ontains question text
+  # extract information from rand: labels each answer option according to its order of occurrence and contains question text
   tmp <- subset(rand, order == as.character(qs[q]))
   tmp$order <- NULL
   names(tmp) <- c(paste0(qs[q], "_question"), paste0(qs[q], "_label"), paste0(qs[q], "_response"))
@@ -77,6 +90,120 @@ for (q in 1:length(qs)) {
   # remove tmp objects
   rm(tmp, tmp2)
   
+  # compute binomial test
+  test <- binom.test(x = sum(df[, paste0(qs[q], "_score")]),
+                     n = nrow(df), 
+                     p = nrow(quest)/4/10,
+                     alternative = "greater")
+  # populate table
+  binom$q[q] <- as.character(qs[q])
+  binom$n_success[q] <- test$statistic
+  binom$n_trial[q] <- test$parameter
+  binom$p_val[q] <- test$p.value
+  binom$ci_lower[q] <- test$conf.int[1]
+  binom$ci_upper[q] <- test$conf.int[2]
+  
+  
+  # delete tmp column
+  df[,as.character(qs[q])] <- NULL
+  
+}
+```
+
+
+To determine how participants performed in the prior knowledge assessment, the selected response was compared to the correct response using custom-made R scripts and points were awarded if the correct response was selected. The total score was calculated as the sum of points obtained in all 10 items.
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# complete total performance score
+df$q_total <- rowSums(df[,c(grepl("_score", names(df)))])
+
+# create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
+ggplot(df, aes(x = Finished, y = q_total)) +
+  ggdist::stat_halfeye(adjust = 1.5, width = .3, .width = 0, justification = -.3, point_colour = NA, fill = ambition_charcole) + 
+  geom_boxplot(width = .1, outlier.shape = NA) + # do not show outlier in boxplot
+  geom_hline(yintercept = nrow(quest)/4, linetype="dashed") +
+  stat_summary(fun="mean", geom = "point", col = ambition_coral) + 
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = .05, col = ambition_coral) +
+  ggdist::stat_dots(side = "left", dotsize = 0.3, justification = 1.1, binwidth = .1, col = ambition_charcole, fill = ambition_charcole) +
+  coord_cartesian(ylim = c(0,nrow(quest)), xlim = c(1,1)) +
+  theme_bw() +
+  ggtitle("Descriptive visualisation of performance in prior knowledge assessment") +
+  ylab("Total number of correct items") +
+  theme(axis.title.x = element_blank(), axis.text.x = element_blank()) +
+  scale_y_continuous(breaks=seq(0,10,2))
+
+```
+
+Above, a "raincloud" plot was used to visualise the data. A raincloud plot used here combines a half violin plot (illustrating the distribution of the data) with a boxplot (showing summary statistics) and a dot plot (capturing the raw data). Additionally, the mean (+/- standard error) were added in coral together with a horizontal line marking chance level performance.  
+
+Descriptive statistics can further be found in the table below.
+
+```{r, echo = F, results='asis', fig.align='center'}
+tmp <- psych::describe(df$q_total)
+row.names(tmp) <- NULL
+tmp$vars <- NULL
+print(knitr::kable(tmp))
+cat('\n\n<!-- -->\n\n')
+```
+
+After determining whether the total score was normally distributed, the appropriate statistical test (i.e., one-Sample t-test or the non-parametric Wilcoxon signed rank test) was used to determine whether the performance was significantly better than chance.
+
+```{r, echo=F}
+# test for normal distribution
+if (shapiro.test(df$q_total)$p < 0.05){
+  # use non-parametric test if data is not normally distributed
+  wilcox.test(df$q_total, mu = nrow(quest)/4, alternative = "greater")
+} else {
+  # use parametric t-test
+  t.test(df$q_total, mu = nrow(quest)/4, alternative = "greater")
+}
+
+```
+
+In addition to the total test score, each item was examined separately. For this, the proportion of correct responses was plotted for each item below. The dotted horizontal line represents chance-level performance. The error bars represent the 95% confidence intervals estimated based upon binomial tests, testing the null hypothesis that the number of correct responses is greater than chance level.
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+
+# --- visualise average performance on each item --- #
+
+# compute proportion of correct responses
+binom$perc <- binom$n_success/binom$n_trial
+binom$q <- factor(binom$q, levels = paste0("Q", 1:nrow(quest)))
+
+# use desc as input for a bar graph for each question
+ggplot(binom, aes(x = q, y = perc)) +
+  geom_bar(stat = "identity", fill = ambition_coral) +
+  geom_errorbar(aes(ymin=ci_lower, ymax=ci_upper), width=.2) +
+  geom_hline(yintercept = 0.25, linetype="dashed") +
+  theme_bw() + 
+  coord_cartesian(ylim = c(0,1)) + scale_y_continuous(labels = scales::label_percent()) +
+  ylab("Proportion correct") +
+  xlab("Questions") +
+  ggtitle("Comparison to chance-level peformance")
+```
+
+Further, answer patterns in each question were investigated by plotting the proportion each response option was selected with. The corresponding item text and answer options were also included. The correct answer was highlighted in coral.
+
+```{r, results='asis', fig.align = "center", echo = F}
+# extract ordered question index
+qs <-sort(quest$order)
+
+# loop through all questions
+for (q in 1:length(qs)) {
+  
+  # determine correct answer string
+  correct <- quest$correct[quest$order == as.character(qs[q])]
+  #correct <- gsub("[*]","", correct)
+  #correct <- gsub("[*]","", correct)
+  
+  # print to console/markdown
+  cat("  \n##### ", as.character(qs[q]))
+  cat("  \n")
+  cat("  \n**Question: ", quest$question[quest$order == as.character(qs[q])],"**", "*[ correct: ", correct, "]*")
+  cat("  \n\nOption 1: ", quest$option1[quest$order == as.character(qs[q])])
+  cat("  \n Option 2: ", quest$option2[quest$order == as.character(qs[q])])
+  cat("  \n Option 3: ", quest$option3[quest$order == as.character(qs[q])])
+  cat("  \n Option 4: ", quest$option4[quest$order == as.character(qs[q])])
   
   # create this tmp column where the score (i.e., 0 or 1) is transformed into a character variable
   # will be used to determine fill colour in bar graphs
@@ -100,64 +227,27 @@ for (q in 1:length(qs)) {
   
   cat("  \n")
   
-  
 }
 ```
 
-```{r, include=FALSE}
-
-# only select the ID and Q*_score columns
-desc <- df[,c(grepl("ResponseId", names(df)) | grepl("_score", names(df)))]
-
-# convert them from wide into long format where variable describes Q*_score
-desc <- reshape2::melt(desc)
-
-# use data in long format as input for psych::describeBy
-desc <-psych::describeBy(desc$value, desc$variable)
-
-# transform from list to df
-desc <- do.call(rbind.data.frame, desc)
-
-# overwrite vars column with identifiable row names info
-desc$vars <- gsub("_score", "", row.names(desc))
-desc$vars <- factor(desc$vars, levels = paste0("Q",1:nrow(desc)))
-row.names(desc) <- NULL
-
-# result: descriptives for all questions presented
-```
-
-#### Comparison to chance-level peformance
-
-```{r, echo = F, results='asis', fig.align='center'}
-
-ggplot(desc, aes(x = vars, y = mean)) +
-  geom_bar(stat = "identity", fill = ambition_coral) +
-  geom_errorbar(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), width=.2) +
-  geom_hline(yintercept = 0.25, linetype="dashed") +
-  theme_bw() + 
-  coord_cartesian(ylim = c(0,1)) + scale_y_continuous(labels = scales::label_percent()) +
-  ylab("Proportion correct") +
-  xlab("Questions") 
-```
-
 ### Feedback survey  
-  
-[add text here...]  
-[...]  
-[...]  
 
+Feedback regarding the prior knowledge test was evaluated.  
 
-```{r, echo=FALSE, results='asis', fig.align='center'}
+```{r, include= F}
 # rename variables that contain feedbak info
 names(df)[names(df) == "quest_amount_1"] <- "quest_amount"
-names(df)[names(df) == "quest_difficulty_1"] <- "quest_diff"
+names(df)[names(df) == "quest_difficulty_1"] <- "quest_difficulty"
 names(df)[names(df) == "quest_rating_1"] <- "quest_rat_concise"
-names(df)[names(df) == "quest_rating_2"] <- "quest_rat_understand"
-names(df)[names(df) == "quest_rating_3"] <- "quest_rat_compreh"
-names(df)[names(df) == "quest_rating_4"] <- "quest_rat_unamb"
+names(df)[names(df) == "quest_rating_2"] <- "quest_rat_easy_to_understand"
+names(df)[names(df) == "quest_rating_3"] <- "quest_rat_comprehensive"
+names(df)[names(df) == "quest_rating_4"] <- "quest_rat_unambiguous"
+```
 
-# --- amount ---
+##### Amount of questions
 
+The raincloud plot below illustrate how participants have rated the item.  
+```{r, echo=FALSE, results='asis', fig.align='center'}
 # declare factor
 df$quest_amount <- factor(df$quest_amount, levels = c("too few", "few", "neither nor", "many", "too many"))
 # assign numeric value
@@ -168,63 +258,133 @@ df$quest_amount_score <- ifelse(df$quest_amount == "too few", -2,
                                                      ifelse(df$quest_amount == "too many", 2,
                                                             NA)))))
 
+# # create bargraph
+# plt <- ggplot(df, aes(x = quest_amount)) +
+#   geom_bar(aes(y = (after_stat(count))/sum(after_stat(count))), fill = ambition_charcole) +
+#   theme_bw() +
+#   coord_cartesian(ylim = c(0,1)) + scale_y_continuous(labels = scales::label_percent()) +
+#   scale_x_discrete(breaks = c("too few", "", "neither nor", "", "too many")) +
+#   xlab("Answer options") +
+#   ylab("Proportion") 
+# print(plt)
+
+# create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
+ggplot(df, aes(x = Finished, y = quest_amount_score)) +
+  ggdist::stat_halfeye(adjust = 1.5, width = .3, .width = 0, justification = -.3, point_colour = NA, fill = ambition_charcole) + 
+  geom_boxplot(width = .1, outlier.shape = NA) + # do not show outlier in boxplot
+  stat_summary(fun="mean", geom = "point", col = ambition_coral) + 
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = .05, col = ambition_coral) +
+  ggdist::stat_dots(side = "left", dotsize = 0.3, justification = 1.1, binwidth = .1, col = ambition_charcole, fill = ambition_charcole) +
+  coord_cartesian(ylim = c(-2,2), xlim = c(1,1)) +
+  theme_bw() +
+  theme(axis.title.x = element_blank(), axis.text.x = element_blank()) +
+  ylab("Rating") +
+  xlab("Items")
+
+
+```
+
+Descriptive statistics associated with the ratings are shown below. Please note that "too few" was coded as -2 whereas "too many" was coded as +2. An average rating of/close to zero would represent that the amount of question was neither too few nor too many.
+
+```{r, echo=FALSE, results='asis', fig.align='center'}
 # calculate descriptives in table
 tmp <- psych::describe(df$quest_amount_score)
 
-# print to markdown
-cat("  \n#### Amount of questions")
-cat("  \n")
-
-
-plt <- ggplot(df, aes(x = quest_amount)) +
-  geom_bar(aes(y = (after_stat(count))/sum(after_stat(count))), fill = ambition_charcole) +
-  theme_bw() +
-  coord_cartesian(ylim = c(0,1)) + scale_y_continuous(labels = scales::label_percent()) +
-  xlab("Answer options") +
-  ylab("Proportion") #+
-  #ggtitle("Amount questions") 
-
-print(plt)
+row.names(tmp) <- NULL
+tmp$vars <- NULL
 
 print(knitr::kable(tmp))
 cat('\n\n<!-- -->\n\n')
 
-# --- amount ---
+```
+
+Whether the observed rating was significantly different from zero was determined using (non-)parametric tests. 
+
+```{r, echo=F}
+# test for normal distribution
+if (shapiro.test(df$quest_amount_score)$p < 0.05){
+  # use non-parametric test if data is not normally distributed
+  wilcox.test(df$quest_amount_score)
+} else {
+  # use parametric t-test
+  t.test(df$quest_amount_score)
+}
+
+```
+
+##### Difficulty of questions
+
+Similar to the amount of questions, the difficulty of questions was rated using a bipolar Likert scale (-2 = "too easy", +2 = "too difficult"). The ratings provided by participants are plotted below. 
+```{r, echo=FALSE, results='asis', fig.align='center'}
 
 # declare factor
-df$quest_diff <- factor(df$quest_diff, levels = c("too easy", "easy", "neither nor", "difficult", "too difficult"))
+df$quest_difficulty <- factor(df$quest_difficulty, levels = c("too easy", "easy", "neither nor", "difficult", "too difficult"))
 # assign numeric value 
-df$quest_diff_score <- ifelse(df$quest_diff == "too easy", -2,
-                              ifelse(df$quest_diff == "easy", -1,
-                                     ifelse(df$quest_diff == "neither nor", 0,
-                                            ifelse(df$quest_diff == "difficult", 1,
-                                                   ifelse(df$quest_diff == "too difficult", 2,
+df$quest_difficulty_score <- ifelse(df$quest_difficulty == "too easy", -2,
+                              ifelse(df$quest_difficulty == "easy", -1,
+                                     ifelse(df$quest_difficulty == "neither nor", 0,
+                                            ifelse(df$quest_difficulty == "difficult", 1,
+                                                   ifelse(df$quest_difficulty == "too difficult", 2,
                                                           NA)))))
-# calculate descriptives in table
-tmp <- psych::describe(df$quest_diff_score)
-# print to markdown
-cat("  \n#### Difficulty of questions")
-cat("  \n")
 
-plt <- ggplot(df, aes(x = quest_diff)) +
-  geom_bar(aes(y = (after_stat(count))/sum(after_stat(count))), fill = ambition_charcole) +
+# # create bar graph
+# plt <- ggplot(df, aes(x = quest_difficulty)) +
+#   geom_bar(aes(y = (after_stat(count))/sum(after_stat(count))), fill = ambition_charcole) +
+#   theme_bw() +
+#   coord_cartesian(ylim = c(0,1)) + scale_y_continuous(labels = scales::label_percent()) +
+#   scale_x_discrete(breaks = c("too easy", "", "neither nor", "", "too difficult")) +
+#   xlab("Answer options") +
+#   ylab("Proportion") 
+# print(plt)
+
+# create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
+ggplot(df, aes(x = Finished, y = quest_difficulty_score)) +
+  ggdist::stat_halfeye(adjust = 1.5, width = .3, .width = 0, justification = -.3, point_colour = NA, fill = ambition_charcole) + 
+  geom_boxplot(width = .1, outlier.shape = NA) + # do not show outlier in boxplot
+  stat_summary(fun="mean", geom = "point", col = ambition_coral) + 
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = .05, col = ambition_coral) +
+  ggdist::stat_dots(side = "left", dotsize = 0.3, justification = 1.1, binwidth = .1, col = ambition_charcole, fill = ambition_charcole) +
+  coord_cartesian(ylim = c(-2,2), xlim = c(1,1)) +
+  #scale_y_discrete(breaks = c("too easy", "", "neither nor", "", "too difficult")) +
   theme_bw() +
-  coord_cartesian(ylim = c(0,1)) + scale_y_continuous(labels = scales::label_percent()) +
-  xlab("Answer options") +
-  ylab("Proportion") #+
-  #ggtitle("Difficulty questions") 
+  theme(axis.title.x = element_blank(), axis.text.x = element_blank()) +
+  ylab("Rating") +
+  xlab("Items")
 
-print(plt)
+```
 
+Descriptive summary statistics of the difficulty rating were computed and statistically compared against zero.  
+
+```{r, echo=FALSE, results='asis', fig.align='center'}
+# calculate descriptives in table
+tmp <- psych::describe(df$quest_difficulty_score)
+
+row.names(tmp) <- NULL
+tmp$vars <- NULL
 
 print(knitr::kable(tmp))
 cat('\n\n<!-- -->\n\n')
 
+```
 
-# --- ratings of questions ---
-cat("  \n#### Ratings of questions")
-cat("  \n")
 
+```{r, echo=F}
+# test for normal distribution
+if (shapiro.test(df$quest_difficulty_score)$p < 0.05){
+  # use non-parametric test if data is not normally distributed
+  wilcox.test(df$quest_difficulty_score)
+} else {
+  # use parametric t-test
+  t.test(df$quest_difficulty_score)
+}
+
+```
+
+#### Other ratings
+
+Lastly, a 5-point Likert scale rating matrix was presented to participants to obtain further ratings on the questions. Each item was rated on a scale from -2 ("strongly disagree") to 2 ("strongly agree"). Raincloud plots were used to visualise distribution and summary statistics for each rating.
+
+```{r, include=FALSE, results='asis', fig.align='center'}
 vs <- names(df)[grepl("_rat_", names(df)) ]
 for (v in 1:length(vs)) {
   
@@ -238,19 +398,65 @@ for (v in 1:length(vs)) {
                                                        ifelse(df[,vs[v]] == "Somewhat agree", 1,
                                                               ifelse(df[,vs[v]] == "Strongly agree", 2,
                                                                      NA)))))
+  # rescale so that variable 
+  #df[,paste0(vs[v], "_score")] <- df[,paste0(vs[v], "_score")] + 3
   
-  
-  df[,paste0(vs[v], "_score")] <- df[,paste0(vs[v], "_score")] + 3
-  
-  #cat("\nUnique responses (", length(unique(df[,vs[v]])), "): ", unique(df[,vs[v]]), "\n\n")
 }
+
+
+# # plot data as bargraph
+# plt <- ggplot(desc, aes(x = vars, y = mean)) +
+#   geom_point(stat = "identity", fill = ambition_charcole) +
+#   geom_errorbar(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), width=.1) +
+#   #geom_hline(yintercept = 0.25, linetype="dashed") +
+#   theme_bw() + coord_cartesian(ylim = c(-2,2)) +
+#   ylab("Average Rating") +
+#   xlab("Items")
+# print(plt)
+```
+
+
+```{r, echo=FALSE, results='asis', fig.align='center'}
+
 
 # select subset of variables
 desc <- df[,c(grepl("ResponseId", names(df)) | grepl("_rat_", names(df)))]
 desc <- desc[,c(grepl("ResponseId", names(desc)) | grepl("score", names(desc)))]
 
 # tranform them into long format
-desc <- reshape2::melt(desc)
+desc <- reshape2::melt(desc, id.vars = "ResponseId")
+
+desc$variable <- gsub("quest_rat_", "", desc$variable)
+desc$variable <- gsub("_score", "", desc$variable)
+desc$variable <- gsub("_", " ", desc$variable)
+
+vars <- unique(desc$variable)
+desc$variable <- factor(desc$variable, levels = vars)
+
+
+# create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
+ggplot(desc, aes(x = variable, y = value)) +
+  ggdist::stat_halfeye(adjust = 1.5, width = .3, .width = 0, justification = -.3, point_colour = NA, fill = ambition_charcole) + 
+  geom_boxplot(width = .1, outlier.shape = NA) + # do not show outlier in boxplot
+  geom_hline(yintercept = nrow(quest)/4, linetype="dashed") +
+  stat_summary(fun="mean", geom = "point", col = ambition_coral) + 
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = .05, col = ambition_coral) +
+  ggdist::stat_dots(side = "left", dotsize = 0.3, justification = 1.1, binwidth = .1, col = ambition_charcole, fill = ambition_charcole) +
+  coord_cartesian(ylim = c(-2,2)) +
+  theme_bw() +
+  #ggtitle("Descriptive visualisation of performance in prior knowledge assessment") +
+  ylab("Rating") +
+  xlab("Items")
+```
+Additional descriptive statistics were computed and included below.
+
+```{r, echo=FALSE, results='asis', fig.align='center'}
+# select subset of variables
+desc <- df[,c(grepl("ResponseId", names(df)) | grepl("_rat_", names(df)))]
+desc <- desc[,c(grepl("ResponseId", names(desc)) | grepl("score", names(desc)))]
+
+# tranform them into long format
+desc <- reshape2::melt(desc, id.vars = "ResponseId")
 
 # compute descriptive stats, seperately for each rating
 desc <-psych::describeBy(desc$value, desc$variable)
@@ -261,16 +467,12 @@ desc <- do.call(rbind.data.frame, desc)
 # create better identifier
 desc$vars <- gsub("quest_rat_", "", row.names(desc))
 desc$vars <- gsub("_score", "", desc$vars)
+desc$vars <- gsub("_", " ", desc$vars)
 row.names(desc) <- NULL
 
-# plot data as bargraph
-ggplot(desc, aes(x = vars, y = mean)) +
-  geom_bar(stat = "identity", fill = ambition_charcole) +
-  geom_errorbar(aes(ymin=mean-1.96*se, ymax=mean+1.96*se), width=.2) +
-  geom_hline(yintercept = 0.25, linetype="dashed") +
-  theme_bw() + coord_cartesian(ylim = c(1,5)) +
-  ylab("Average Rating") +
-  xlab("Items") 
+vars <- desc$vars
+desc$vars <- factor(desc$vars, levels = vars)
+
 
 # show descriptive stats
 print(knitr::kable(desc))
@@ -279,17 +481,17 @@ cat('\n\n<!-- -->\n\n')
 ```
 
 
+##### Intercorrelation matrix of all ratings
 
+```{r, echo=FALSE, results='asis', fig.align='center', fig.height=10, fig.width=10}
+desc <- df[,c(grepl("ResponseId", names(df)) | grepl("quest_", names(df)))]
+desc <- desc[,c(grepl("ResponseId", names(desc)) | grepl("score", names(desc)))]
 
+names(desc) <- gsub("quest_", "", names(desc))
+names(desc) <- gsub("rat_", "", names(desc))
+names(desc) <- gsub("_score", "", names(desc))
+names(desc) <- gsub("_", "", names(desc))
 
-
-
-
-
-
-
-
-
-
-
+ggpairs(desc[, -1], lower = list(continuous=wrap("points", position=position_jitter(height=0.25, width=0.25)))) +theme_bw()
+```
 
