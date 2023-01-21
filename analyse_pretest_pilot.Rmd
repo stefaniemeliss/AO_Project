@@ -7,13 +7,14 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+options(warn=-1)
 rm(list = ls())
 library(ggplot2)
 library(GGally)
 
 
 # read in responses (choice text extracted)
-df <- read.csv("generated_responses_text.csv", stringsAsFactors = F)
+df <- read.csv("data_export_jan20_txt.csv", stringsAsFactors = F)
 
 # remove first two rows
 df <- df[grepl("2023", df$StartDate),]
@@ -30,6 +31,9 @@ rand <- reshape2::melt(rand, id = c("question", "order"))
 # define variables for plotting
 ambition_coral <- "#E94B58"
 ambition_charcole <- "#2C3C3B"
+
+# average duration
+mean(as.numeric(df$`Duration..in.seconds.`))/60
 ```
 
 ### Description of the pilot study
@@ -38,7 +42,7 @@ The purpose of this pilot study was to administer the prior knowledge assessment
 
 ##### Participants  
 
-Participants were recruited using Twitter. The pilot study was set up in Qualtrics and a distribution link was shared (by SS). In total, the survey was completed by **XX** participants. The project protocol was approved by University College London's ethics committee. Participants were informed about the purpose and provided informed consent to participate in the pilot study.   
+Participants were recruited using Twitter. The pilot study was set up in Qualtrics and a distribution link was shared (by SS). In total, the survey was completed by **101** participants. The project protocol was approved by University College London's ethics committee. Participants were informed about the purpose and provided informed consent to participate in the pilot study.   
 
 ##### Materials and measurements  
 
@@ -47,7 +51,7 @@ The feedback survey consisted of in total six items. We asked participants to ra
 
 ##### Procedure  
 
-Upon following the Qualtrics survey distribution link, participants were informed about the purpose of the study and asked to provide consent. No identifiable information was recorded but participants were asked to create a study pseudonym should they wish to withdraw their consent. Participants then completed the prior knowledge assessment (presented on a single page) followed by the feedback survey (presented on one page). Participants took on average **xx** min to complete the pilot study.  
+Upon following the Qualtrics survey distribution link, participants were informed about the purpose of the study and asked to provide consent. No identifiable information was recorded but participants were asked to create a study pseudonym should they wish to withdraw their consent. Participants then completed the prior knowledge assessment (presented on a single page) followed by the feedback survey (presented on one page). Participants took on average **5.85** min to complete the pilot study.  
 
 
 ### Performance in the prior knowledge assessment
@@ -176,7 +180,7 @@ ggplot(binom, aes(x = q, y = perc)) +
   geom_errorbar(aes(ymin=ci_lower, ymax=ci_upper), width=.2) +
   geom_hline(yintercept = 0.25, linetype="dashed") +
   theme_bw() + 
-  coord_cartesian(ylim = c(0,1)) + scale_y_continuous(labels = scales::label_percent()) +
+  coord_cartesian(ylim = c(0,1)) + scale_y_continuous(labels = scales::label_percent(), breaks=seq(0,1,0.1)) +
   ylab("Proportion correct") +
   xlab("Questions") +
   ggtitle("Comparison to chance-level peformance")
@@ -200,7 +204,7 @@ for (q in 1:length(qs)) {
   cat("  \n##### ", as.character(qs[q]))
   cat("  \n")
   cat("  \n**Question: ", quest$question[quest$order == as.character(qs[q])],"**", "*[ correct: ", correct, "]*")
-  cat("  \n\nOption 1: ", quest$option1[quest$order == as.character(qs[q])])
+  cat("  \n\n Option 1: ", quest$option1[quest$order == as.character(qs[q])])
   cat("  \n Option 2: ", quest$option2[quest$order == as.character(qs[q])])
   cat("  \n Option 3: ", quest$option3[quest$order == as.character(qs[q])])
   cat("  \n Option 4: ", quest$option4[quest$order == as.character(qs[q])])
@@ -208,6 +212,9 @@ for (q in 1:length(qs)) {
   # create this tmp column where the score (i.e., 0 or 1) is transformed into a character variable
   # will be used to determine fill colour in bar graphs
   df[,as.character(qs[q])] <- as.character(df[, paste0(qs[q], "_score")])
+  df[,paste0(qs[q], "_label")] <- gsub("n", "n ", df[,paste0(qs[q], "_label")]) # add space
+  df[,paste0(qs[q], "_label")] <- stringr::str_to_title(df[,paste0(qs[q], "_label")]) # add space
+  
   
   plt <- ggplot(df, aes(x = get(paste0(qs[q], "_label")), fill = get( as.character(qs[q]) ))) +
     geom_bar(aes(y = (after_stat(count))/sum(after_stat(count)))) +
@@ -217,8 +224,8 @@ for (q in 1:length(qs)) {
     #ggtitle(unique(df[, paste0(qs[q], "_question")])) +
     scale_fill_manual(values = c(ambition_charcole, ambition_coral)) +
     theme(legend.position = "none") +
-    scale_x_discrete(labels = paste("Option", 1:4)) +
-    scale_y_continuous(labels = scales::label_percent())
+    #scale_x_discrete(labels = paste("Option", 1:4)) +
+    scale_y_continuous(labels = scales::label_percent(), breaks=seq(0,1,0.1))
   
   print(plt)
   
@@ -312,6 +319,16 @@ if (shapiro.test(df$quest_amount_score)$p < 0.05){
 
 ```
 
+Participants were also provided with the option to expand on the rating using comments.
+
+```{r, echo=F}
+for (i in 1:length(unique(df$quest_amount_com))) {
+  cat(unique(df$quest_amount_com)[i], "\n\n")
+}
+
+```
+
+
 ##### Difficulty of questions
 
 Similar to the amount of questions, the difficulty of questions was rated using a bipolar Likert scale (-2 = "too easy", +2 = "too difficult"). The ratings provided by participants are plotted below. 
@@ -321,11 +338,11 @@ Similar to the amount of questions, the difficulty of questions was rated using 
 df$quest_difficulty <- factor(df$quest_difficulty, levels = c("too easy", "easy", "neither nor", "difficult", "too difficult"))
 # assign numeric value 
 df$quest_difficulty_score <- ifelse(df$quest_difficulty == "too easy", -2,
-                              ifelse(df$quest_difficulty == "easy", -1,
-                                     ifelse(df$quest_difficulty == "neither nor", 0,
-                                            ifelse(df$quest_difficulty == "difficult", 1,
-                                                   ifelse(df$quest_difficulty == "too difficult", 2,
-                                                          NA)))))
+                                    ifelse(df$quest_difficulty == "easy", -1,
+                                           ifelse(df$quest_difficulty == "neither nor", 0,
+                                                  ifelse(df$quest_difficulty == "difficult", 1,
+                                                         ifelse(df$quest_difficulty == "too difficult", 2,
+                                                                NA)))))
 
 # # create bar graph
 # plt <- ggplot(df, aes(x = quest_difficulty)) +
@@ -379,6 +396,14 @@ if (shapiro.test(df$quest_difficulty_score)$p < 0.05){
 }
 
 ```
+Participants were also provided with the option to expand on the rating using comments.
+
+```{r, echo=F}
+for (i in 1:length(unique(df$quest_difficulty_com))) {
+  cat(unique(df$quest_difficulty_com)[i], "\n\n")
+}
+```
+
 
 #### Other ratings
 
@@ -416,7 +441,7 @@ for (v in 1:length(vs)) {
 ```
 
 
-```{r, echo=FALSE, results='asis', fig.align='center'}
+```{r, echo=FALSE, results='asis', fig.align='center', fig.width=10}
 
 
 # select subset of variables
@@ -480,18 +505,49 @@ cat('\n\n<!-- -->\n\n')
 
 ```
 
+Participants were also provided with the option to expand on the rating using comments.
+
+```{r, echo=F}
+for (i in 1:length(unique(df$quest_rating_com))) {
+  cat(unique(df$quest_rating_com)[i], "\n\n")
+}
+```
+
 
 ##### Intercorrelation matrix of all ratings
 
-```{r, echo=FALSE, results='asis', fig.align='center', fig.height=10, fig.width=10}
+```{r, echo=FALSE, results='asis', fig.align='center', fig.height=10, fig.width=10, message=F, warning=F}
 desc <- df[,c(grepl("ResponseId", names(df)) | grepl("quest_", names(df)))]
 desc <- desc[,c(grepl("ResponseId", names(desc)) | grepl("score", names(desc)))]
+desc$correct_responses <- df$q_total
 
 names(desc) <- gsub("quest_", "", names(desc))
 names(desc) <- gsub("rat_", "", names(desc))
 names(desc) <- gsub("_score", "", names(desc))
 names(desc) <- gsub("_", "", names(desc))
 
-ggpairs(desc[, -1], lower = list(continuous=wrap("points", position=position_jitter(height=0.25, width=0.25)))) +theme_bw()
+lowerfun <- function(data,mapping){
+  ggplot(data = data, mapping = mapping)+
+    geom_point(position=position_jitter(height=0.25, width=0.25), col = ambition_charcole) +
+  coord_cartesian(ylim = c(-2,2), xlim = c(-2,2))
+
+} 
+
+diagfun <- function(data,mapping){
+  
+  ggplot(data = data, mapping = mapping)+
+    geom_histogram(stat = "count", binwidth = 1, fill = ambition_coral) + 
+    coord_cartesian(ylim = c(0,100), xlim = c(-2,2))
+} 
+
+plt <- ggpairs(desc[, -1], lower = list(continuous = wrap(lowerfun)), diag = list(continuous =  wrap(diagfun))) + theme_bw() 
+
+for (i in c(1:6)) {
+  plt[7,i] <- plt[7,i] + coord_cartesian(ylim = c(0,10), default = T) + scale_y_continuous(breaks=seq(0,10,2))
+}
+
+plt[7,7] <- plt[7,7] + coord_cartesian(xlim = c(0,10), default = T) + scale_x_continuous(breaks=seq(0,10,2))
+
+print(suppressWarnings(plt))
 ```
 
