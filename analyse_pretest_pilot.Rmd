@@ -14,7 +14,7 @@ library(GGally)
 
 
 # read in responses (choice text extracted)
-df <- read.csv("data_export_jan20_txt.csv", stringsAsFactors = F)
+df <- read.csv("data_export_jan24_txt.csv", stringsAsFactors = F)
 
 # remove first two rows
 df <- df[grepl("2023", df$StartDate),]
@@ -42,7 +42,7 @@ The purpose of this pilot study was to administer the prior knowledge assessment
 
 ##### Participants  
 
-Participants were recruited using Twitter. The pilot study was set up in Qualtrics and a distribution link was shared (by SS). In total, the survey was completed by **101** participants. The project protocol was approved by University College London's ethics committee. Participants were informed about the purpose and provided informed consent to participate in the pilot study.   
+Participants were recruited using Twitter. The pilot study was set up in Qualtrics and a distribution link was shared (by SS). In total, the survey was completed by **135** participants. The project protocol was approved by University College London's ethics committee. Participants were informed about the purpose and provided informed consent to participate in the pilot study.   
 
 ##### Materials and measurements  
 
@@ -51,7 +51,7 @@ The feedback survey consisted of in total six items. We asked participants to ra
 
 ##### Procedure  
 
-Upon following the Qualtrics survey distribution link, participants were informed about the purpose of the study and asked to provide consent. No identifiable information was recorded but participants were asked to create a study pseudonym should they wish to withdraw their consent. Participants then completed the prior knowledge assessment (presented on a single page) followed by the feedback survey (presented on one page). Participants took on average **5.85** min to complete the pilot study.  
+Upon following the Qualtrics survey distribution link, participants were informed about the purpose of the study and asked to provide consent. No identifiable information was recorded but participants were asked to create a study pseudonym should they wish to withdraw their consent. Participants then completed the prior knowledge assessment (presented on a single page) followed by the feedback survey (presented on one page). Participants took on average **5.02** min to complete the pilot study.  
 
 
 ### Performance in the prior knowledge assessment
