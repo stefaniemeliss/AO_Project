@@ -32,9 +32,8 @@ quest <- merge(quest, rand, by = c("question", "order"))
 # create long format of rand quest (for later merging)
 rand <- reshape2::melt(rand, id = c("question", "order"))
 
-# define variables for plotting
-ambition_coral <- "#E94B58"
-ambition_charcole <- "#2C3C3B"
+# define function for plotting
+source("functions.R")
 
 # average duration
 mean(as.numeric(df$`Duration..in.seconds.`))/60
@@ -130,19 +129,12 @@ To determine how participants performed in the prior knowledge assessment, the s
 df$q_total <- rowSums(df[,c(grepl("_score", names(df)))])
 
 # create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
-ggplot(df, aes(x = Finished, y = q_total)) +
-  ggdist::stat_halfeye(adjust = 1.5, width = .3, .width = 0, justification = -.3, point_colour = NA, fill = ambition_charcole) + 
-  geom_boxplot(width = .1, outlier.shape = NA) + # do not show outlier in boxplot
-  geom_hline(yintercept = nrow(quest)/4, linetype="dashed") +
-  stat_summary(fun="mean", geom = "point", col = ambition_coral) + 
-  stat_summary(fun.data = mean_se, geom = "errorbar", width = .05, col = ambition_coral) +
-  ggdist::stat_dots(side = "left", dotsize = 0.3, justification = 1.1, binwidth = .1, col = ambition_charcole, fill = ambition_charcole) +
-  coord_cartesian(ylim = c(0,nrow(quest)), xlim = c(1,1)) +
-  theme_bw() +
-  ggtitle("Descriptive visualisation of performance in prior knowledge assessment") +
-  ylab("Total number of correct items") +
-  theme(axis.title.x = element_blank(), axis.text.x = element_blank()) +
-  scale_y_continuous(breaks=seq(0,10,2))
+plt <- plot_raincloud(df, "Finished", "q_total", 
+               xlower = 1, xupper = 1,
+               ylower = 0, yupper = nrow(quest), ybreaks = 2, yintercept = nrow(quest)/4,
+               title = "Descriptive visualisation of performance in prior knowledge assessment",
+               ylab = "Total number of correct items") + theme(axis.title.x = element_blank(), axis.text.x = element_blank()) 
+print(suppressWarnings(plt))
 
 ```
 
@@ -284,18 +276,11 @@ df$quest_amount_score <- ifelse(df$quest_amount == "too few", -2,
 # print(plt)
 
 # create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
-ggplot(df, aes(x = Finished, y = quest_amount_score)) +
-  ggdist::stat_halfeye(adjust = 1.5, width = .3, .width = 0, justification = -.3, point_colour = NA, fill = ambition_charcole) + 
-  geom_boxplot(width = .1, outlier.shape = NA) + # do not show outlier in boxplot
-  stat_summary(fun="mean", geom = "point", col = ambition_coral) + 
-  stat_summary(fun.data = mean_se, geom = "errorbar", width = .05, col = ambition_coral) +
-  ggdist::stat_dots(side = "left", dotsize = 0.3, justification = 1.1, binwidth = .1, col = ambition_charcole, fill = ambition_charcole) +
-  coord_cartesian(ylim = c(-2,2), xlim = c(1,1)) +
-  theme_bw() +
-  theme(axis.title.x = element_blank(), axis.text.x = element_blank()) +
-  ylab("Rating") +
-  xlab("Items")
-
+plt <- plot_raincloud(df, "Finished", "quest_amount_score", 
+               xlower = 1, xupper = 1,
+               ylower = -2, yupper = 2, 
+               ylab = "Rating")  + theme(axis.title.x = element_blank(), axis.text.x = element_blank()) 
+print(suppressWarnings(plt))
 
 ```
 
@@ -363,18 +348,11 @@ df$quest_difficulty_score <- ifelse(df$quest_difficulty == "too easy", -2,
 # print(plt)
 
 # create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
-ggplot(df, aes(x = Finished, y = quest_difficulty_score)) +
-  ggdist::stat_halfeye(adjust = 1.5, width = .3, .width = 0, justification = -.3, point_colour = NA, fill = ambition_charcole) + 
-  geom_boxplot(width = .1, outlier.shape = NA) + # do not show outlier in boxplot
-  stat_summary(fun="mean", geom = "point", col = ambition_coral) + 
-  stat_summary(fun.data = mean_se, geom = "errorbar", width = .05, col = ambition_coral) +
-  ggdist::stat_dots(side = "left", dotsize = 0.3, justification = 1.1, binwidth = .1, col = ambition_charcole, fill = ambition_charcole) +
-  coord_cartesian(ylim = c(-2,2), xlim = c(1,1)) +
-  #scale_y_discrete(breaks = c("too easy", "", "neither nor", "", "too difficult")) +
-  theme_bw() +
-  theme(axis.title.x = element_blank(), axis.text.x = element_blank()) +
-  ylab("Rating") +
-  xlab("Items")
+plt <- plot_raincloud(df, "Finished", "quest_difficulty_score", 
+               xlower = 1, xupper = 1,
+               ylower = -2, yupper = 2, 
+               ylab = "Rating") + theme(axis.title.x = element_blank(), axis.text.x = element_blank()) 
+print(suppressWarnings(plt))
 
 ```
 
@@ -466,20 +444,10 @@ desc$variable <- gsub("_", " ", desc$variable)
 vars <- unique(desc$variable)
 desc$variable <- factor(desc$variable, levels = vars)
 
-
 # create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
-ggplot(desc, aes(x = variable, y = value)) +
-  ggdist::stat_halfeye(adjust = 1.5, width = .3, .width = 0, justification = -.3, point_colour = NA, fill = ambition_charcole) + 
-  geom_boxplot(width = .1, outlier.shape = NA) + # do not show outlier in boxplot
-  geom_hline(yintercept = nrow(quest)/4, linetype="dashed") +
-  stat_summary(fun="mean", geom = "point", col = ambition_coral) + 
-  stat_summary(fun.data = mean_se, geom = "errorbar", width = .05, col = ambition_coral) +
-  ggdist::stat_dots(side = "left", dotsize = 0.3, justification = 1.1, binwidth = .1, col = ambition_charcole, fill = ambition_charcole, position = "dodge") +
-  coord_cartesian(ylim = c(-2,2)) +
-  theme_bw() +
-  #ggtitle("Descriptive visualisation of performance in prior knowledge assessment") +
-  ylab("Rating") +
-  xlab("Items")
+plt <- plot_raincloud(desc, "variable", "value", ylower = -2, yupper = 2, 
+                      ylab = "Rating", xlab = "Items")
+print(suppressWarnings(plt))
 ```
 Additional descriptive statistics were computed and included below.
 
@@ -642,20 +610,12 @@ cat('\n')
 
 ```{r, echo=F}
 # create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
-ggplot(df, aes(x = Finished, y = q_2pl)) +
-  ggdist::stat_halfeye(adjust = 1.5, width = .3, .width = 0, justification = -.3, point_colour = NA, fill = ambition_charcole) + 
-  geom_boxplot(width = .1, outlier.shape = NA) + # do not show outlier in boxplot
-  geom_hline(yintercept = nrow(quest)/4, linetype="dashed") +
-  stat_summary(fun="mean", geom = "point", col = ambition_coral) + 
-  stat_summary(fun.data = mean_se, geom = "errorbar", width = .05, col = ambition_coral) +
-  ggdist::stat_dots(side = "left", dotsize = 0.3, justification = 1.1, binwidth = .1, col = ambition_charcole, fill = ambition_charcole) +
-  coord_cartesian(ylim = c(-2,2), xlim = c(1,1)) +
-  theme_bw() +
-  ggtitle("Descriptive visualisation of performance in prior knowledge assessment") +
-  ylab("Theta") +
-  theme(axis.title.x = element_blank(), axis.text.x = element_blank()) +
-  scale_y_continuous(breaks=seq(-2,2,0.5))
-
+plt <- plot_raincloud(df, "Finished", "q_2pl", 
+               xlower = 1, xupper = 1,
+               ylower = -2, yupper = 2, ybreaks = 0.5,
+               title = "Descriptive visualisation of performance in prior knowledge assessment",
+               ylab = "Theta") + theme(axis.title.x = element_blank(), axis.text.x = element_blank()) 
+print(suppressWarnings(plt))
 ```
 
 The latent score and sum scores are highly correlated with each other.  
