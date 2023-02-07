@@ -1,10 +1,24 @@
 ---
-title: "Create Randomised Pretest Questions - Pilot Study"
+title: "Create Randomised Pretest Questions - Final version"
 author: "Stefanie Meliss"
 date: "`r Sys.Date()`"
 output: html_document
 ---
 
+
+Based upon the results of the pretest, some items and/or distractors were modified, please see change log below. Items and/or distractors were modified if the correct response rate in the pilot study was ≥ 80%. In cases where distractor edits were not possible and items needed to be modified, the scope of the item and thereby the breadth of the prior knowledge assessment remained unchanged. The wording of items was also modified in response to participant feedback to avoid ambiguity.  
+  
+**Q4** [A grapheme is an individual letter or a group of letters that represents…]  
+Distractor "A word" was changed to "The sound of a whole word"  
+  
+**Q7**original question: "Reading fluency contributes to reading comprehension by… " changed to "Which of these capabilities is least likely to contribute to a person’s reading fluency?" together with all distractors  
+  
+**Q8** original question "Tier 3 vocabulary can be thought of as words that…" changed to "Vocabulary tiers form a construct that is commonly used to prioritise particular words to teach. Tier 3 vocabulary can be thought of as…" together with all distractors  
+  
+**Q9** original question "Which of these comprehension strategies does not have a sound basis in evidence?" reworded to "Which of these comprehension strategies has the least sound basis in evidence?"  
+  
+**Q10** original question "Pupils make inferences when they read…" changed to "In terms of reading, inferences are conclusions that…" together with all distractors  
+  
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 rm(list = ls())
@@ -38,7 +52,7 @@ q03_d3 <- "The chunk of sound associated with a morpheme."
 q04_q    <- "A grapheme is an individual letter or a group of letters that represents... "
 q04_d1 <- "A syllable."
 q04_d2 <- "A morpheme." 
-q04_d3 <- "A word."
+q04_d3 <- "The sound of a whole word."
 q04_c  <- "A phoneme." 
 
 # q5
@@ -56,35 +70,32 @@ q06_d3 <- "Accuracy, automaticity and syntax."
 q06_c  <- "Accuracy, automaticity and prosody."
 
 # q7
-q07_q  <- "Reading fluency contributes to reading comprehension by..." 
-q07_c  <- "Freeing up the cognitive resources that can be devoted to building meaning from words." 
-q07_d1 <- "Allowing readers to flow through text without identifying all of the words on a page."
-q07_d2 <- "Significantly reducing the pupil’s reliance on background knowledge."
-q07_d3 <- "Increasing pupils’ working memory capacity."
+q07_q  <- "Which of these capabilities is *least* likely to contribute to a person's reading fluency?" 
+q07_c  <- "Knowledge of comprehension strategies." 
+q07_d1 <- "Word recognition."
+q07_d2 <- "Syntactic knowledge."
+q07_d3 <- "Vocabulary knowledge."
 
 # q8
-q08_q <- "Tier 3 vocabulary can be thought of as words that..."
-q08_d1 <- "Pupils are likely to learn through their everyday interactions."
-q08_d2 <- "Are more likely to be found in an academic context and *are not* associated with a given academic subject."
-#q08_d2 <- "Are more likely to be found in an academic context and are not associated with a given academic subject."
-q08_d3 <- "Are found primarily in narrative texts."
-q08_c  <- "Are more likely to be found in an academic context and *are* associated with a particular academic subject or subjects." 
-#q08_c  <- "Are more likely to be found in an academic context and are associated with a particular academic subject or subjects." 
+q08_q <- "Vocabulary tiers form a construct that is commonly used to prioritise particular words to teach. Tier 3 vocabulary can be thought of as…"
+q08_d1 <- "Basic words that pupils are likely to learn through their everyday interactions."
+q08_d2 <- "Words that are high frequency for mature language users and are found across a variety of domains."
+q08_d3 <- "Words that are found primarily in scientific subjects."
+q08_c  <- "Words that are quite low frequency and restricted to specific domains."
 
 # q9
-q09_q  <- "Which of these comprehension strategies does **not** have a sound basis in evidence?"
-#q09_q  <- "Which of these comprehension strategies does not have a sound basis in evidence?"
+q09_q  <- "Which of these comprehension strategies has the *least* sound basis in evidence?"
 q09_d1 <- "Self-questioning."
 q09_c  <- "Extrapolating."
 q09_d2 <- "Summarising."
 q09_d3 <- "Clarifying."
 
 # q10
-q10_q  <- "Pupils make inferences when they read..." 
-q10_c  <- "All types of text."
-q10_d1 <- "Fiction texts only." 
-q10_d2 <- "Non-fiction texts only." 
-q10_d3 <- "But not when they read independently."
+q10_q  <- "In terms of reading, inferences are conclusions that..." 
+q10_c  <- "Go beyond the literal meaning of the text."
+q10_d1 <- "Don't require background knowledge." 
+q10_d2 <- "Necessarily require conscious thinking." 
+q10_d3 <- "Are not necessary when reading non-fiction texts."
 
 # ---------- combine all questions and answers into data frame ----------
 
@@ -157,7 +168,24 @@ for (c in 1:ncol(q_rand)) {
   q_rand[, c] <- gsub("[*]","", q_rand[,c])
 }
 
-write.csv(pretest, "pretest_pilot.csv", row.names = F)
-write.csv(q_rand, "pretest_pilot_rand.csv", row.names = F)
+write.csv(pretest, "pretest_fin.csv", row.names = F)
+write.csv(q_rand, "pretest_fin_rand.csv", row.names = F)
+```
+
+##### Question texts and answers
+
+```{r, echo=FALSE, results='asis'}
+for (q in 1:nrow(q_rand)) {
+  
+  # print to console/markdown
+  cat("  \n\n")
+  cat("  \n **", q, ". ", q_rand$question[q],"**", sep = "")
+  cat("  \n\n (a) ", q_rand$option1[q])
+  cat("  \n (b) ", q_rand$option2[q])
+  cat("  \n (c) ", q_rand$option3[q])
+  cat("  \n (d) ", q_rand$option4[q])
+  
+
+}
 ```
 
