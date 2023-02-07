@@ -11,7 +11,8 @@ options(warn=-1)
 rm(list = ls())
 library(ggplot2)
 library(GGally)
-
+library(mirt)
+library(ggmirt)
 
 # read in responses (choice text extracted)
 df <- read.csv("data_export_jan24_txt.csv", stringsAsFactors = F)
@@ -19,10 +20,13 @@ df <- read.csv("data_export_jan24_txt.csv", stringsAsFactors = F)
 # remove first two rows
 df <- df[grepl("2023", df$StartDate),]
 
+# only select complete observations
+df <- df[grepl("True", df$Finished),]
+
 # read in questionnaire files
-quest <- read.csv("pretest.csv", stringsAsFactors = F)
+quest <- read.csv("pretest_pilot.csv", stringsAsFactors = F)
 quest$order <- factor(quest$order, levels = paste0("Q",1:nrow(quest)))
-rand <- read.csv("pretest_rand.csv", stringsAsFactors = F)
+rand <- read.csv("pretest_pilot_rand.csv", stringsAsFactors = F)
 quest <- merge(quest, rand, by = c("question", "order"))
 
 # create long format of rand quest (for later merging)
@@ -42,7 +46,11 @@ The purpose of this pilot study was to administer the prior knowledge assessment
 
 ##### Participants  
 
+<<<<<<< Updated upstream
 Participants were recruited using Twitter. The pilot study was set up in Qualtrics and a distribution link was shared (by SS). In total, the survey was completed by **135** participants. The project protocol was approved by University College London's ethics committee. Participants were informed about the purpose and provided informed consent to participate in the pilot study.   
+=======
+Participants were recruited using Twitter. The pilot study was set up in Qualtrics and a distribution link was shared (by SS). In total, the survey was started by 135 participants and completed by **111** participants. The project protocol was approved by University College London's ethics committee. Participants were informed about the purpose and provided informed consent to participate in the pilot study.   
+>>>>>>> Stashed changes
 
 ##### Materials and measurements  
 
@@ -51,7 +59,11 @@ The feedback survey consisted of in total six items. We asked participants to ra
 
 ##### Procedure  
 
+<<<<<<< Updated upstream
 Upon following the Qualtrics survey distribution link, participants were informed about the purpose of the study and asked to provide consent. No identifiable information was recorded but participants were asked to create a study pseudonym should they wish to withdraw their consent. Participants then completed the prior knowledge assessment (presented on a single page) followed by the feedback survey (presented on one page). Participants took on average **5.02** min to complete the pilot study.  
+=======
+Upon following the Qualtrics survey distribution link, participants were informed about the purpose of the study and asked to provide consent. No identifiable information was recorded but participants were asked to create a study pseudonym should they wish to withdraw their consent. Participants then completed the prior knowledge assessment (presented on a single page) followed by the feedback survey (presented on one page). Participants took on average **5.81** min to complete the pilot study.  
+>>>>>>> Stashed changes
 
 
 ### Performance in the prior knowledge assessment
@@ -138,7 +150,7 @@ ggplot(df, aes(x = Finished, y = q_total)) +
 
 ```
 
-Above, a "raincloud" plot was used to visualise the data. A raincloud plot used here combines a half violin plot (illustrating the distribution of the data) with a boxplot (showing summary statistics) and a dot plot (capturing the raw data). Additionally, the mean (+/- standard error) were added in coral together with a horizontal line marking chance level performance.  
+Above, a "raincloud" plot was used to visualise the data. A raincloud plot used here combines a half violin plot (illustrating the distribution of the data, i.e., the charcole-coloured cloud) with a boxplot (showing summary statistics, i.e., rectangle with whiskers) and a dot plot (capturing the raw data, i.e., the charcole-coloured rain). Additionally, the mean (+/- standard error) were added in coral together with a horizontal line marking chance level performance.  
 
 Descriptive statistics can further be found in the table below.
 
@@ -150,7 +162,7 @@ print(knitr::kable(tmp))
 cat('\n\n<!-- -->\n\n')
 ```
 
-After determining whether the total score was normally distributed, the appropriate statistical test (i.e., one-Sample t-test or the non-parametric Wilcoxon signed rank test) was used to determine whether the performance was significantly better than chance.
+After determining whether the total score was normally distributed, the appropriate statistical test (i.e., one-Sample t-test or the non-parametric Wilcoxon signed rank test) was used to determine whether the performance was significantly better than chance (i.e., randomly picking the correct out of 4 alternatives, 1/4 = 25%).
 
 ```{r, echo=F}
 # test for normal distribution
@@ -441,7 +453,7 @@ for (v in 1:length(vs)) {
 ```
 
 
-```{r, echo=FALSE, results='asis', fig.align='center', fig.width=10}
+```{r, echo=FALSE, results='asis', fig.align='center', fig.width=15}
 
 
 # select subset of variables
@@ -466,7 +478,7 @@ ggplot(desc, aes(x = variable, y = value)) +
   geom_hline(yintercept = nrow(quest)/4, linetype="dashed") +
   stat_summary(fun="mean", geom = "point", col = ambition_coral) + 
   stat_summary(fun.data = mean_se, geom = "errorbar", width = .05, col = ambition_coral) +
-  ggdist::stat_dots(side = "left", dotsize = 0.3, justification = 1.1, binwidth = .1, col = ambition_charcole, fill = ambition_charcole) +
+  ggdist::stat_dots(side = "left", dotsize = 0.3, justification = 1.1, binwidth = .1, col = ambition_charcole, fill = ambition_charcole, position = "dodge") +
   coord_cartesian(ylim = c(-2,2)) +
   theme_bw() +
   #ggtitle("Descriptive visualisation of performance in prior knowledge assessment") +
@@ -549,5 +561,116 @@ for (i in c(1:6)) {
 plt[7,7] <- plt[7,7] + coord_cartesian(xlim = c(0,10), default = T) + scale_x_continuous(breaks=seq(0,10,2))
 
 print(suppressWarnings(plt))
+```
+
+##### Item Response Theory (IRT)
+
+To create an index of prior knowledge, it is possible to simply add up items to a sum score as done above. However, measurement theories and more specifically item response theory (IRT) can be applied to measure the latent knowledge score. IRT models have three parameters:  
+  
+* *discrimination* (i.e., ability of an item to differentiate between respondents with different levels of proficiency)  
+* *difficulty* (i.e., likelihood of a correct response, expressed as the proficiency level at which 50% of the participant sample is estimated to answer an item correctly)  
+* *guessing probability*  
+
+As a first step, a uni-dimensional model is specified and the data for each item is supplied to the model before fitting the model using the *'mirt package'* (Chalmers, 2012). A 2PL and a 3PL model were fitted, however, as shown below, the 3PL model did not fit the data and hence, the simpler 2PL model was preferred. 
+
+```{r, echo=F}
+# source: https://philippmasur.de/2022/05/13/how-to-run-irt-analyses-in-r/
+
+# r code for IRT
+unimodel <- 'F1 = 1-10'
+
+# 2 parameter model
+fit2PL <- mirt(data =  df[, paste0("Q", c(1:10), "_score")], 
+               model = unimodel,  # alternatively, we could also just specify model = 1 in this case
+               itemtype = "2PL", 
+               verbose = FALSE)
+fit2PL
+
+# 3 parameter model
+fit3PL <- mirt(data =  df[, paste0("Q", c(1:10), "_score")], 
+               model = unimodel,  # alternatively, we could also just specify model = 1 in this case
+               itemtype = "3PL", 
+               verbose = FALSE)
+fit3PL
+
+# model comparison
+anova(fit2PL, fit3PL)
+```
+To understand the IRT parameters, the so-called factor solution including factor loadings (F1) and the communalities (h2), which are squared factor loadings and are interpreted as the variance accounted for in an item by the latent trait. Substantive relationship with the latent trait are defined as loadings > .50.
+
+```{r, echo = F}
+# Factor solution
+summary(fit2PL)
+```
+
+The 2PL model takes item discrimination (first parameter: a) and item difficulty (second parameter: b) into account while guessing probability (third parameter: c or g) is held constant.  
+  
+Parameter a represents the values of the slope and the values fairly evenly distributed in the 2PL model, yet larger values, i.e., steeper slopes are better at differentiating people as higher slope value indicate stronger relationships between item and latent trait.  
+  
+The location or difficulty parameters (parameter b) is also listed for each item. Location parameters are interpreted as the value of theta that corresponds to a .50 probability of responding correctly at or above that location on an item. The location parameters show that the items cover a wide range of the latent trait in the negative, but not the positive direction.  
+
+```{r, echo = FALSE}
+params2PL <- coef(fit2PL, IRTpars = TRUE, simplify = TRUE)
+round(params2PL$items, 2) # g = c = guessing parameter
+```
+Below, the model fit is quantified using *M2*, a statistic designed to assess the fit of IRT models. The IRT model results in a non-significant M2 statistic, indicating that there is no significant difference between the model and the data.
+
+```{r, echo = FALSE}
+M2(fit2PL)
+```
+
+Item characteristic curves visualise the IRT parameters for each item to help understand the properties of each item. As illustrated below and in alignment with what has been said above, the items predominantly differentiate among the negative values of theta and particularly close to zero.  
+
+```{r, echo = F}
+ggmirt::tracePlot(fit2PL, theta_range = c(-20, 20), facet = F, legend = T) + scale_color_brewer(palette = "Paired")
+```
+Information curves (plotted below) refer to the ability of an item to estimate theta scores. 
+
+```{r}
+ggmirt::itemInfoPlot(fit2PL, theta_range = c(-20, 20), legend = T) + scale_color_brewer(palette = "Paired")
+```
+
+IRT can also be used to estimate the latent score of each subject. The descriptives are included and plotted below. 
+
+```{r, echo = F, results='asis'}
+# extract ability estimates for each subject 
+df$q_2pl <- fscores(fit2PL)
+desc <- psych::describe(df$q_2pl)
+
+# show descriptive stats
+print(knitr::kable(desc))
+cat('\n\n<!-- -->\n\n')
+cat('\n')
+
+```
+
+```{r, echo=F}
+# create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
+ggplot(df, aes(x = Finished, y = q_2pl)) +
+  ggdist::stat_halfeye(adjust = 1.5, width = .3, .width = 0, justification = -.3, point_colour = NA, fill = ambition_charcole) + 
+  geom_boxplot(width = .1, outlier.shape = NA) + # do not show outlier in boxplot
+  geom_hline(yintercept = nrow(quest)/4, linetype="dashed") +
+  stat_summary(fun="mean", geom = "point", col = ambition_coral) + 
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = .05, col = ambition_coral) +
+  ggdist::stat_dots(side = "left", dotsize = 0.3, justification = 1.1, binwidth = .1, col = ambition_charcole, fill = ambition_charcole) +
+  coord_cartesian(ylim = c(-2,2), xlim = c(1,1)) +
+  theme_bw() +
+  ggtitle("Descriptive visualisation of performance in prior knowledge assessment") +
+  ylab("Theta") +
+  theme(axis.title.x = element_blank(), axis.text.x = element_blank()) +
+  scale_y_continuous(breaks=seq(-2,2,0.5))
+
+```
+
+The latent score and sum scores are highly correlated with each other.  
+```{r, echo = F}
+ggplot(df, aes(x = q_total, y = q_2pl)) +
+  geom_point(col = ambition_charcole) + 
+  geom_smooth(method=lm, col = ambition_coral, fullrange = T) +
+  theme_bw() +
+  ggtitle("Relationship Between Sum Score And IRT Approach") +
+  ylab("Theta")+xlab("Sum score") +
+  coord_cartesian(xlim = c(0,nrow(quest)), ylim = c(-2,2)) + scale_x_continuous(breaks=seq(0,nrow(quest),2)) + scale_y_continuous(breaks=seq(-2,2,0.5)) +
+  ggpubr::stat_cor(method = "pearson", cor.coef.name = "r", label.x = 2, label.y = 1)  # Add correlation coefficient
 ```
 
