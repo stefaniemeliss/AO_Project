@@ -168,7 +168,7 @@ for (c in 1:ncol(q_rand)) {
   q_rand[, c] <- gsub("[*]","", q_rand[,c])
 }
 
-write.csv(pretest, "pretest_fin.csv", row.names = F)
+write.csv(pretest, "pretest_fin_raw.csv", row.names = F)
 write.csv(q_rand, "pretest_fin_rand.csv", row.names = F)
 ```
 
