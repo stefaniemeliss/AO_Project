@@ -8,14 +8,26 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 options(warn=-1)
-rm(list = ls())
+options(scipen = 999)
+
+# load libraries
 library(ggplot2)
 library(GGally)
 library(mirt)
 library(ggmirt)
 
+# clear workspace
+rm(list = ls())
+
+# check directory
+proj_dir <- getwd()
+proj_dir <- ("C:/Users/stefanie.meliss/OneDrive - Ambition Institute/code/AO_NPQLL") # debug
+cd <- file.path(proj_dir, "pilots", "pretest")
+setwd(cd)
+
 # read in responses (choice text extracted)
-df <- read.csv("data_export_jan24_txt.csv", stringsAsFactors = F)
+file = "pretest_pilot_data_export_mar01_txt.csv"
+df <- read.csv(file, stringsAsFactors = F)
 
 # remove first two rows
 df <- df[grepl("2023", df$StartDate),]
@@ -24,7 +36,7 @@ df <- df[grepl("2023", df$StartDate),]
 df <- df[grepl("True", df$Finished),]
 
 # read in questionnaire files
-quest <- read.csv("pretest_pilot.csv", stringsAsFactors = F)
+quest <- read.csv("pretest_pilot_raw.csv", stringsAsFactors = F)
 quest$order <- factor(quest$order, levels = paste0("Q",1:nrow(quest)))
 rand <- read.csv("pretest_pilot_rand.csv", stringsAsFactors = F)
 quest <- merge(quest, rand, by = c("question", "order"))
@@ -45,9 +57,7 @@ The purpose of this pilot study was to administer the prior knowledge assessment
 
 ##### Participants  
 
-Participants were recruited using Twitter. The pilot study was set up in Qualtrics and a distribution link was shared (by SS). In total, the survey was completed by **135** participants. The project protocol was approved by University College London's ethics committee. Participants were informed about the purpose and provided informed consent to participate in the pilot study.   
-
-Participants were recruited using Twitter. The pilot study was set up in Qualtrics and a distribution link was shared (by SS). In total, the survey was started by 135 participants and completed by **111** participants. The project protocol was approved by University College London's ethics committee. Participants were informed about the purpose and provided informed consent to participate in the pilot study.   
+Participants were recruited using Twitter. The pilot study was set up in Qualtrics and a distribution link was shared (by SS). In total, the survey was started by 194 participants and completed by **111** participants. The project protocol was approved by University College London's ethics committee. Participants were informed about the purpose and provided informed consent to participate in the pilot study.   
 
 ##### Materials and measurements  
 
@@ -56,9 +66,7 @@ The feedback survey consisted of in total six items. We asked participants to ra
 
 ##### Procedure  
 
-Upon following the Qualtrics survey distribution link, participants were informed about the purpose of the study and asked to provide consent. No identifiable information was recorded but participants were asked to create a study pseudonym should they wish to withdraw their consent. Participants then completed the prior knowledge assessment (presented on a single page) followed by the feedback survey (presented on one page). Participants took on average **5.02** min to complete the pilot study.  
-
-Upon following the Qualtrics survey distribution link, participants were informed about the purpose of the study and asked to provide consent. No identifiable information was recorded but participants were asked to create a study pseudonym should they wish to withdraw their consent. Participants then completed the prior knowledge assessment (presented on a single page) followed by the feedback survey (presented on one page). Participants took on average **5.81** min to complete the pilot study.  
+Upon following the Qualtrics survey distribution link, participants were informed about the purpose of the study and asked to provide consent. No identifiable information was recorded but participants were asked to create a study pseudonym should they wish to withdraw their consent. Participants then completed the prior knowledge assessment (presented on a single page) followed by the feedback survey (presented on one page). Participants took on average **5.81min** to complete the pilot study.  
 
 
 ### Performance in the prior knowledge assessment
@@ -73,6 +81,8 @@ binom <- data.frame(q = character(length(qs)),
                     p_val = numeric(length(qs)),
                     ci_lower = numeric(length(qs)),
                     ci_upper = numeric(length(qs)))
+
+p_cor <- 0.05/length(qs) # bonferroni
 
 
 # --- loop through all questions to compute score, assign label, etc --- #
@@ -105,7 +115,8 @@ for (q in 1:length(qs)) {
   test <- binom.test(x = sum(df[, paste0(qs[q], "_score")]),
                      n = nrow(df), 
                      p = nrow(quest)/4/10,
-                     alternative = "greater")
+                     alternative = "greater",
+                     conf.level = 1-p_cor)
   # populate table
   binom$q[q] <- as.character(qs[q])
   binom$n_success[q] <- test$statistic
@@ -628,5 +639,10 @@ ggplot(df, aes(x = q_total, y = q_2pl)) +
   ylab("Theta")+xlab("Sum score") +
   coord_cartesian(xlim = c(0,nrow(quest)), ylim = c(-2,2)) + scale_x_continuous(breaks=seq(0,nrow(quest),2)) + scale_y_continuous(breaks=seq(-2,2,0.5)) +
   ggpubr::stat_cor(method = "pearson", cor.coef.name = "r", label.x = 2, label.y = 1)  # Add correlation coefficient
+```
+
+```{r, echo=F, include=F}
+write.csv(df, file = gsub("txt", "processed", file), row.names = F)
+
 ```
 
