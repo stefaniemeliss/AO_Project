@@ -1,0 +1,371 @@
+---
+title: "Create Randomised Posttest Questions - Pilot Study"
+author: "Stefanie Meliss"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(kableExtra)
+
+
+# clear workspace
+rm(list = ls())
+
+# check directory
+proj_folder <- getwd()
+proj_folder <- ("C:/Users/stefanie.meliss/OneDrive - Ambition Institute/code/AO_NPQLL") # debug
+cd <- file.path(proj_folder, "pilots", "manipulation_posttest")
+setwd(cd)
+```
+
+```{r, include=FALSE, echo=F}
+# ---------- define all questions and corresponding answers ----------
+
+# i1
+i01_q  <- "A pupil’s reading comprehension appears to be significantly below age-related expectations. Weaknesses with which aspect(s) of reading might contribute to this? Select all correct answers."
+i01_a  <- "Word recognition"
+i01_b <- "Fluency" 
+i01_c <- "Background knowledge relevant to the texts in the assessment" 
+i01_d <- "Awareness of the difference between Tier 2 and Tier 3 vocabulary."
+i01_sol <- paste(i01_a, i01_b, i01_c, sep = " / ")
+
+# q2
+i02_q  <- "Complete this sentence: A grapheme can be understood as an individual letter or a set of letters that represents a __________." 
+i02_a <- "" 
+i02_b <- "" 
+i02_c <- "" 
+i02_d <- ""
+i02_sol <- "phoneme"
+
+# q3
+i03_q <- "Understanding the role of morphemes in the English writing system is most likely to support… (Pick the two most appropriate answers)" 
+i03_a <- "Word recognition" 
+i03_b <- "Vocabulary development"
+i03_c <- "Comprehension strategy use"
+i03_d <- "Background knowledge development"
+i03_sol <- paste(i03_a, i03_b, sep = " / ")
+
+# q4
+i04_q <- "Complete this sentence: The process of reasoning when reading that goes beyond the literal meaning of the text is called __________." 
+i04_a <- "" 
+i04_b <- "" 
+i04_c <- "" 
+i04_d <- ""
+i04_sol <- "inference"
+
+# q5
+i05_q <- "A pupil takes two reading comprehension assessments on the same day. The pupil achieves two very different scores on these assessments. This suggests that… (Select all correct answers.)" 
+i05_a <- "The tests required different vocabulary and background knowledge." 
+i05_b <- "The results of individual comprehension assessments should not be treated as a definitive guide to a pupil’s reading ability." 
+i05_c <- "Reading comprehension tests are of no value." 
+i05_d <- "The pupil improved their reading fluency significantly."
+i05_sol <- paste(i05_a, i05_b, sep = " / ")
+
+# q6
+i06_q <- "A literacy lead and a science lead are designing the science curriculum to support pupils’ reading development. Which of these are likely to be useful elements of such a curriculum? Select all the correct answers" 
+i06_a <- "Opportunities to draw inferences from pictures." 
+i06_b <- "Carefully sequenced content to help build knowledge of the world." 
+i06_c <- "Selected key scientific words to be taught to pupils." 
+i06_d <- "Texts embedded into the curriculum that provide opportunities for reading practice."
+i06_sol <- paste(i06_a, i06_b, sep = " / ")
+
+# q7
+i07_q <- "How many graphemes are there in the word ‘bracket’?" 
+i07_a <- "" 
+i07_b <- "" 
+i07_c <- "" 
+i07_d <- ""
+i07_sol <- "6"
+
+# q8
+i08_q <- "How many morphemes are there in the word ‘regained’?" 
+i08_a <- "" 
+i08_b <- "" 
+i08_c <- "" 
+i08_d <- ""
+i08_sol <- "3"
+
+# q9
+i09_q <- "Which pupils might benefit most from being taught how and when to summarise what they read and ask questions about what they read?" 
+i09_a <- "Pupils who appear to be relatively fluent readers but who pay little attention to building meaning as they read." 
+i09_b <- "Pupils who struggle to decode words."
+i09_c <- "Pupils who recognise individual words adequately, but who struggle to read fluently." 
+i09_d <- "Pupils who lack the vocabulary to read academic texts."
+i09_sol <- paste(i09_a, sep = " / ")
+
+# q10
+i10_q <- "Which of these might be a way of detecting a pupil’s oral reading fluency? (Select all correct answers.)" 
+i10_a <- "Appropriate intonation of words." 
+i10_b <- "Reading speed." 
+i10_c <- "Correct decoding of words." 
+i10_d <- "Appropriate stress of words."
+i10_sol <- paste(i10_a, i10_b, i10_c, i10_d, sep = " / ")
+
+# q11
+i11_q <- "Which of these are examples of comprehension strategies that might be used by pupils to support them to build meaning from a challenging text?" 
+i11_a <- "Clarifying" 
+i11_b <- "Summarising" 
+i11_c <- "Highlighting" 
+i11_d <- "Blending"
+i11_sol <- paste(i11_a, i11_b, sep = " / ")
+
+# q12
+i12_q <- "Which of these words, when spoken aloud, contain a phoneme that is also contained within the word ‘chef’?" 
+i12_a <- "Wash" 
+i12_b <- "March" 
+i12_c <- "See" 
+i12_d <- "Phone"
+i12_sol <- paste(i12_a, sep = " / ")
+
+# q13
+i13_q <- "Complete this sentence: The smallest chunk of meaning within a word is called a __________." 
+i13_a <- "" 
+i13_b <- "" 
+i13_c <- "" 
+i13_d <- ""
+i13_sol <- "morpheme"
+
+# q14
+i14_q <- "Which of these overlapping bodies of knowledge most directly contribute to language comprehension? (Pick the two most appropriate answers.)" 
+i14_a <- "Vocabulary." 
+i14_b <- "Knowledge of sentence structure." 
+i14_c <- "Phonemic awareness." 
+i14_d <- "Knowledge of the ‘code’ of correspondences between phonemes and graphemes."
+i14_sol <- paste(i14_a, i14_b, sep = " / ")
+
+# q15
+i15_q <- "Inferences are..." 
+i15_a <- "Made by readers when they reach conclusions that go beyond the literal meaning of the text." 
+i15_b <- "Central to the construction of meaning when reading." 
+i15_c <- "Required only when reading narrative texts." 
+i15_d <- "Only made by a person when they are reading."
+i15_sol <- paste(i15_a, i15_b, sep = " / ")
+
+# q16
+i16_q <- "Complete this sentence: The approaches to reading and writing that are tailored to the purposes, methods, and content of a particular area of academic study are called ____________ literacy." 
+i16_a <- "" 
+i16_b <- "" 
+i16_c <- "" 
+i16_d <- ""
+i16_sol <- "disciplinary"
+
+# q17
+i17_q <- "With respect to word recognition, which of the following statements are true? (Select all correct answers.)" 
+i17_a <- "Segmenting is an essential phonemic skill for spelling, but learning how to do it also develops an awareness of phonemes that supports reading development." 
+i17_b <- "Evidence suggests that the teaching of graphemes and phonemes benefits from an organised curriculum." 
+i17_c <- "Systematic synthetic morphology is the most effective approach for teaching pupils to decode." 
+i17_d <- "English orthography is shallow, meaning that it is characterised by a high degree of correspondence between phonemes and graphemes."
+i17_sol <- paste(i17_a, i17_b, sep = " / ")
+
+# q18
+i18_q <- "Which aspects are important to consider when designing reading comprehension lessons? (Select all correct answers.)" 
+i18_a <- "Reading comprehension lessons should not be entirely based upon answering questions in writing as this reduces the amount of time spent reading texts." 
+i18_b <- "The teaching of reading comprehension should occur in key stages 1 and 2, but not in key stages 3 and 4." 
+i18_c <- "Subject-specific approaches include exposure to a variety of text types and aim to increase the breadth, but not depth, of pupils’ vocabulary." 
+i18_d <- "Comprehension of text is facilitated by reading fluency, but comprehension does not facilitate reading fluency."
+i18_sol <- paste(i18_a, sep = " / ")
+
+# q19
+i19_q <- "Please complete the following sentence: With extensive practice, the process of word recognition develops a sense of flow. This flow of words is called ___________________." 
+i19_a <- "" 
+i19_b <- "" 
+i19_c <- "" 
+i19_d <- ""
+i19_sol <- "(reading) fluency"
+
+# q20
+i20_q <- "As a result of extensive decoding practice, the quality of in-classroom discussions of new texts noticeably increases. How might this be explained? (Select all correct answers.)" 
+i20_a <- "Fluency has improved, meaning pupils have more working memory available to dedicate to building meaning from the texts." 
+i20_b <- "The pupils’ level of prosody has reduced." 
+i20_c <- "The pupils have learned that they do not need to accurately recognise the words in order to make meaning from the text." 
+i20_d <- "Recognising the correspondence between graphemes and phonemes becomes less automated and error prone."
+i20_sol <- paste(i20_a, sep = " / ")
+
+# q21
+i21_q <- "A text says, ‘Harriet kicked the ball into the net and ran off with her arms in the air.’ A reader reasons that Harriet is likely to be playing football. This is an example of an inference because…" 
+i21_a <- "It requires the reader to draw a conclusion that isn’t literally stated in the text." 
+i21_b <- "It requires the reader to recognise every word." 
+i21_c <- "It requires the reader to read sentences that came before this one." 
+i21_d <- "It requires the reader to ignore some of the words and focus on others."
+i21_sol <- paste(i20_a, sep = " / ")
+
+# q22
+i22_q <- "Brief teaching of different ____________ can be used to ensure that pupils are consciously aware that reading is an active constructive process." 
+i22_a <- "" 
+i22_b <- "" 
+i22_c <- "" 
+i22_d <- ""
+i22_sol <- "(comprehension) strategies"
+
+# q23
+i23_q <- "The set of conventions of a writing system are called…" 
+i23_a <- "An orthography"
+i23_b <- "A phonology"
+i23_c <- "A morphology"
+i23_d <- "A phonics system"
+i23_sol <- paste(i23_a, sep = " / ")
+
+
+# ---------- combine all questions and answers into data frame ----------
+
+# grab matching elements and combine into lists
+question <- lapply(ls(pattern="_q"), get)
+option_a <- lapply(ls(pattern="_a"), get)
+option_b <- lapply(ls(pattern="_b"), get)
+option_c <- lapply(ls(pattern="_c"), get)
+option_d <- lapply(ls(pattern="_d"), get)
+solution <- lapply(ls(pattern="_sol"), get)
+
+# convert lists into dataframes
+posttest <- do.call(rbind.data.frame, question)
+names(posttest) <- "question"
+
+tmp <- do.call(rbind.data.frame, option_a)
+names(tmp) <- "option_a"
+posttest$option_a <- tmp$option_a
+
+tmp <- do.call(rbind.data.frame, option_b)
+names(tmp) <- "option_b"
+posttest$option_b <- tmp$option_b
+
+tmp <- do.call(rbind.data.frame, option_c)
+names(tmp) <- "option_c"
+posttest$option_c <- tmp$option_c
+
+tmp <- do.call(rbind.data.frame, option_d)
+names(tmp) <- "option_d"
+posttest$option_d <- tmp$option_d
+
+
+tmp <- do.call(rbind.data.frame, solution)
+names(tmp) <- "solution"
+posttest$solution <- tmp$solution
+
+rm(tmp)
+```
+
+
+```{r, results='asis', echo=F}
+
+kbl(posttest, caption = "Posttest Items with Answers Options and Solutions") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+```
+
+```{r, include=FALSE, echo=F}
+# ---------- randomise question and answers ----------
+
+set.seed(1212) # make reproducible
+q_rand <- posttest[sample(1:nrow(posttest)), ] # shuffle order of question
+#q_rand$solution <- NULL # remove column
+#names(q_rand) <- c("question", "option_a", "option_b", "option_c", "option_d") # rename cols
+
+# loop through all rows and shuffle answer options i.e., columns 2:ncol()
+for (r in 1:nrow(q_rand)) {
+  q_rand[r, 2:(ncol(q_rand)-1)] <-  q_rand[r, sample(2:(ncol(q_rand)-1))]
+  
+}
+
+
+option_a_sol <- mapply(grepl,q_rand[,2],q_rand[,6]) 
+option_b_sol <- mapply(grepl,q_rand[,3],q_rand[,6]) 
+option_c_sol <- mapply(grepl,q_rand[,4],q_rand[,6]) 
+option_d_sol <- mapply(grepl,q_rand[,5],q_rand[,6]) 
+
+
+```
+
+
+```{r, results='asis', echo=F}
+
+remove_column( # removes solution column
+  
+  kbl(q_rand, caption = "Posttest question Randomised") %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>%
+    # bold for each answer column if it is included in solution column
+    column_spec(3,bold=mapply(grepl,q_rand[,2],q_rand[,6])) %>%
+    column_spec(4,bold=mapply(grepl,q_rand[,3],q_rand[,6])) %>%
+    column_spec(5,bold=mapply(grepl,q_rand[,4],q_rand[,6])) %>%
+    column_spec(6,bold=mapply(grepl,q_rand[,5],q_rand[,6]))
+  
+  
+  , 7) # removes solution column
+
+
+
+
+```
+
+```{r, include=F}
+q_rand$order <- paste0("Q",1:nrow(q_rand))
+
+order <- q_rand[, c("question", "order")]
+
+posttest <- merge(posttest, order, by = "question")
+
+for (c in 1:ncol(posttest)) {
+  posttest[, c] <- gsub("[*]","", posttest[,c])
+}
+
+for (c in 1:ncol(q_rand)) {
+  q_rand[, c] <- gsub("[*]","", q_rand[,c])
+}
+
+write.csv(posttest, "posttest_pilot_raw.csv", row.names = F)
+write.csv(q_rand, "posttest_pilot_rand.csv", row.names = F)
+```
+
+
+##### Item texts and answers
+
+```{r, echo=FALSE, results='asis'}
+for (q in 1:nrow(q_rand)) {
+  
+  # print to console/markdown
+  cat("  \n\n")
+  cat("  \n **", q, ". ", q_rand$question[q],"**", sep = "")
+  
+  if (q_rand$option_a[q] == "") {
+    cat("  \n\n")
+  } else {
+    cat("  \n\n (a) ", q_rand$option_a[q])
+    cat("  \n (b) ", q_rand$option_b[q])
+    cat("  \n (c) ", q_rand$option_c[q])
+    cat("  \n (d) ", q_rand$option_d[q])
+  }
+  
+  cat("  \n *[solution: ", q_rand$solution[q])
+  cat("]*")
+  
+  
+}
+```
+
+
+
+
+```{r, echo=FALSE, results='asis'}
+for (q in 1:nrow(q_rand)) {
+  
+  # print to console/markdown
+  cat("\n\n")
+  cat("\n", q, ". ", q_rand$question[q],"", sep = "")
+  
+  if (q_rand$option_a[q] == "") {
+    cat("  \n\n")
+  } else {
+    cat("\n\n(a)", q_rand$option_a[q])
+    cat("\n(b)", q_rand$option_b[q])
+    cat("\n(c)", q_rand$option_c[q])
+    cat("\n(d)", q_rand$option_d[q])
+  }
+  
+  cat("\n[solution:", q_rand$solution[q])
+  cat("]")
+  
+  
+}
+```
