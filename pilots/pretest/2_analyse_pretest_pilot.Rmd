@@ -45,7 +45,7 @@ quest <- merge(quest, rand, by = c("question", "order"))
 rand <- reshape2::melt(rand, id = c("question", "order"))
 
 # define function for plotting
-source("functions.R")
+source(file.path(proj_dir, "pilots", "functions.R"))
 
 # average duration
 mean(as.numeric(df$`Duration..in.seconds.`))/60
