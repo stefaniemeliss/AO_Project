@@ -1,0 +1,819 @@
+---
+title: "Piloting the manipulation and learning outcome assessment"
+author: "Stefanie Meliss"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+## Key Take Home  
+* In comparison to the AO, the non-AO elicits epistemic emotions more strongly. The difference is statistically significant for some, but not all epistemic emotions measured here.  
+* The content of the AO manipulation did not significantly influence performance in the learning outcome assessment.  
+* Especially MC items in the learning outcome assessment may be too easy and prone to ceiling effects.  
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(warn=-1)
+options(scipen = 999)
+
+# load libraries
+library(ggplot2)
+library(GGally)
+library(mirt)
+library(ggmirt)
+library(dplyr)
+
+# clear workspace
+rm(list = ls())
+
+# check directory
+proj_dir <- getwd()
+proj_dir <- ("C:/Users/stefanie.meliss/OneDrive - Ambition Institute/code/AO_NPQLL") # debug
+cd <- file.path(proj_dir, "pilots", "manipulation_posttest")
+setwd(cd)
+
+# read in responses (choice text extracted)
+file = "posttest_pilot_data_export_apr24_txt.csv"
+df <- read.csv(file, stringsAsFactors = F)
+
+# remove first two rows
+df <- df[grepl("2023", df$StartDate),]
+
+# only select complete observations
+df <- df[grepl("True", df$Finished),]
+
+# read in questionnaire files
+rand <- read.csv("posttest_pilot_rand.csv", stringsAsFactors = F)
+
+# --- create long format of rand quest (for later merging) ---
+
+# text format of answer options in long format ONLY FOR MCQs
+rand_l <- rand[!rand$option_a == "",c("question", "option_a", "option_b", "option_c", "option_d", "order")] # omit cols and rows
+rand_l <- reshape2::melt(rand_l, id = c("question", "order"))
+
+# score of each answer option in long format
+solutions <- rand[!rand$option_a == "",c("question", "option_a", "option_b", "option_c", "option_d", "solution", "order")] # omit cols and rows
+solutions$option_a <- as.character(as.numeric(mapply(grepl,solutions[,2],solutions[,6])))
+solutions$option_b <- as.character(as.numeric(mapply(grepl,solutions[,3],solutions[,6])))
+solutions$option_c <- as.character(as.numeric(mapply(grepl,solutions[,4],solutions[,6])))
+solutions$option_d <- as.character(as.numeric(mapply(grepl,solutions[,5],solutions[,6])))
+solutions$solution <- NULL
+solutions <- reshape2::melt(solutions, id = c("question", "order"))
+names(solutions)[names(solutions)=="value"] <- "score"
+
+# combine
+rand_l <- merge(rand_l, solutions, by = c("question", "order", "variable"))
+rand_l$variable <- gsub("_", " ", rand_l$variable)
+rm(solutions)
+
+# define function for plotting
+source(file.path(proj_dir, "pilots", "functions.R"))
+
+# average duration
+mean(as.numeric(df$`Duration..in.seconds.`))/60
+
+# create group variable
+df$group <- ifelse(df$AO == "I have read the introductory passage.", "AO", 
+                   ifelse(df$non_AO == "I have read the introductory passage.", "non-AO", NA))
+df %>% count(group)
+
+# --- price draw ---
+file = "pricedraw_data_export_apr24_txt.csv"
+draw <- read.csv(file, stringsAsFactors = F)
+
+draw <- draw[grepl("2023", draw$StartDate),] # remove first two rows
+set.seed(1212) # make reproducible
+idx <- sample(1:nrow(draw), 4)
+draw$email[idx]
+```
+
+## Description of the pilot study
+
+The purpose of this pilot study was to administer the advance organiser (AO) manipulation as well as the learning outcome assessment to teachers to determine whether the AO manipulation affects ratings of epistemic emotions and performance in the learning outcome assessment without having access to the learning materials, i.e., the evidence summary. The manipulation and learning assessments were designed for the use in this project. Additionally, we were interested in determining whether the items included in the learning outcome assessment have the appropriate level of difficulty.  
+
+#### Participants and design  
+
+Participants were recruited using Twitter. The pilot study was set up in Qualtrics and a distribution link was shared (by SS). In total, the survey was started by 242 participants and completed by **116** participants. Participants were randomly allocated to two groups (control group, n = 54; experimental group, n = 62). The project protocol was approved by University College London's ethics committee. Participants were informed about the purpose and provided informed consent to participate in the pilot study. Participants were invited to enter a raffle to win one of four Amazon vouchers (£25).   
+
+#### Materials and measurements  
+
+Each group was presented with introductory material on the topic of literacy. The experimental group was presented with introductory material that meets the criteria of an AO. The control group was presented with a passage on literacy development that matched the AO in overall structure, complexity, and linguistic properties, but they differed in content.  
+To measure epistemic emotions elicited through exposure with the introductory material, the seven-item short version of the Epistemic Emotions Scale (Pekrun et al., 2016) was used. For each of the seven epistemic emotions presented (e.g., curious), participants indicated the strength of that emotion on a 5-point Likert scale (1 = "Not at all", 5 = "Very strong") that described their emotional response when reading the introductory material. An optional free-text input text box was added, offering participants to opportunity to expand on their rating.  
+The learning outcome assessment consisted of 8 short answer questions (e.g., "Complete this sentence: The smallest chunk of meaning within a word is called a __________.") and 15 four-alternative forced choice questions/statements. For each presented item (e.g., "Which of these words, when spoken aloud, contain a phoneme that is also contained within the word ‘chef’?…"), participants were instructed to select **all correct answers** out of four alternatives they thought as correct (e.g., "Wash", "March", "See", "Phone"). Participants were encouraged to guess but specifically asked to not look up any correct answers. The items and corresponding options were presented in randomised, but constant order, i.e., a custom-made R script was used to randomise the presentation order and the same order was used across all participants.  
+The feedback survey consisted of in total 4 items. A 5-point Likert scale (1 = "strongly disagree", 5 = "strongly agree") was presented to participants to obtain ratings regarding the wording of the questions (e.g., "The questions in the multiple choice test are worded in a way that is concise."). An optional free-text input text box was added, offering participants to opportunity to expand on their rating.  
+
+#### Procedure  
+
+Upon following the Qualtrics survey distribution link, participants were informed about the purpose of the study and asked to provide consent. No identifiable information was recorded but participants were asked to create a study pseudonym should they wish to withdraw their consent. Participants then read one of two introductory materials, ompleted the epistemic emotions scale and learning outcome assessment (presented on a single page each) followed by the feedback survey (presented on one page). Participants took on average **17.09min** to complete the pilot study.  
+
+## Results: Epistemic Emotions Scale
+
+After reading one of the two introductory materials, participants were asked to rate their epistemic emotions using the 7-item short version of the Epistemic Emotions Scale (Pekrun et al., 2016). Lower ratings indicate a lower intensity of a given epistemic emotion. Below, for each epistemic emotion, the desciptives were computed across the whole sample as well as within each group separately. An independent two sample t-test was used to determine whether the groups differ significantly in the ratings. Additionally, a “raincloud” plot was used to visualise the data. A raincloud plot used here combines a half violin plot (illustrating the distribution of the data, i.e., the charcole-coloured cloud) with a boxplot (showing summary statistics, i.e., rectangle with whiskers) and a dot plot (capturing the raw data, i.e., the charcole-coloured rain). Additionally, the mean (+/- standard error) were added in coral together with a horizontal line marking chance level performance.  
+
+As shown below, participants exposed to the non-AO introductory materials experienced all epistemic emotions numerically more intensively. After stringent Bonferoni correction (alpha (k) = .05/7 = .007), the difference remained significant for "confused".  
+
+```{r, include=FALSE, message=F, warning=F}
+# Get names of columns that match the pattern EES_[*]
+ii <- stringr::str_extract(names(df), "EES_\\d+")
+ii <- na.omit(ii) # remove all NAs
+
+# Convert and replace the indicated columns
+df[,ii] <- lapply(df[ii], factor, levels = c("Not at all", "Very little", "Moderate", "Strong", "Very strong"))
+
+# assign numeric value
+df[paste0(ii, "_num")] <- lapply(df[ii], as.numeric)
+
+# name vector
+emotions <- c("surprised", "curious", "excited", "confused", "anxious", "frustrated", "bored")
+emotions <- c("surprised", "curious", "excited", "confused", "anxious", "frustrated", "bored")
+```
+
+```{r, results='asis', echo=FALSE, fig.align='center'}
+p_cor <- 0.05/length(emotions)
+
+for (e in 1:length(emotions)) {
+  
+  # print emotion
+  cat('\n####', emotions[e], "\n")
+  
+  # get descriptives whole sample
+  tmp <- psych::describe(df[, paste0("EES_", e, "_num")])
+  row.names(tmp) <- NULL
+  tmp$vars <- NULL
+  print(knitr::kable(tmp, caption = "Descriptives for whole sample"))
+  cat('\n\n<!-- -->\n\n')
+  
+  # get descriptives per group
+  tmp <- do.call("rbind",psych::describeBy(df[, paste0("EES_", e, "_num")], group = df$group))
+  tmp$vars <- NULL
+  print(knitr::kable(tmp, caption = "Descriptives within each group"))
+  cat('\n\n<!-- -->\n\n')
+  
+  # save tmp for each emotion
+  tmp$group <- row.names(tmp)
+  tmp$emotion <- emotions[e]
+  
+  if (e == 1) {
+    ees <- tmp
+  } else {
+    ees <- rbind(ees, tmp)
+  }
+  
+  # compute two-sample t-test
+  out <- t.test(df[, paste0("EES_", e, "_num")] ~ df$group, data=df)
+  cat("\t\t\tTwo-Sample t-test, t(", out$parameter,") = ", out$statistic, ", p = ", out$p.value, sep="")
+  
+  # add asteriks if p < p_cor
+  if (out$p.value < p_cor) {
+    cat(" ***")
+  }
+  cat("\n\n")
+  
+  # create rain clouds
+  plt <- plot_raincloud(df, "group", paste0("EES_", e, "_num"), 
+                        xlower = 1, xupper = 2,
+                        ylower = 1, yupper = 5,
+                        #title = "Descriptive visualisation of rating in each group",
+                        ylab = paste(emotions[e]))
+  #print(plt)
+  #print(suppressWarnings(plt))
+  #plot.new()
+  #dev.off()
+  cat("\n\n")
+  
+}
+
+
+```
+
+To summarise above, the average rating of the intensity of each emotion (and its standard error) was computed for each group.  
+
+```{r, results='asis', echo=FALSE, fig.align='center'}
+
+# plot data per group for each emotion in a single graph
+row.names(ees) <- NULL
+ees$emotion <- factor(ees$emotion, levels = emotions)
+
+
+# use desc as input for a bar graph for each question
+ggplot(ees, aes(x = emotion, y = mean, fill = group)) +
+  geom_bar(stat = "identity", position="dodge") +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.2, position =position_dodge(.9)) +
+  #geom_hline(yintercept = 0.5, linetype="dashed") +
+  theme_bw() + 
+  scale_fill_manual(values = c(coral, navy)) +
+  coord_cartesian(ylim = c(1,5)) + #scale_y_continuous(labels = scales::label_percent(), breaks=seq(0,1,0.1)) +
+  ylab("Likert scale rating (mean +/- SE)") +
+  xlab("Emotion") +
+  labs(fill = "Group") +
+  ggtitle("Comparison of epistemic emotions elicited by the AO maniplation")
+
+#psych::describe.by(df$EES_1_num, df$group)
+
+```
+
+
+Due to the puzzling results that somehow contradicting epistemic emotions (e.g., feeling excited vs bored) are higher in the group that was presented with the non-AO, the profile for each participant was plotted.
+
+```{r, results='asis', echo=FALSE, fig.align='center'}
+
+# Define the number of colors you want
+n <- nrow(df) # max nuber of ppt per group
+
+color = grDevices::colors()[grep('gr(a|e)y', grDevices::colors(), invert = T)]
+
+
+tmp <- df[, c(grep("ResponseId", names(df)), grep("group", names(df)), grep("_num", names(df)))]
+names(tmp) <- c("ResponseId", "group", emotions)
+
+tmp <- reshape2::melt(tmp, id = c("ResponseId", "group"), value.name = "rating") # make long format so that there is a row per answer option
+tmp$var_num <- as.numeric(tmp$variable)
+tmp$ResponseId <- as.factor(tmp$ResponseId)
+
+ggplot(data = tmp, aes(x = variable, y = rating, col = ResponseId, group = ResponseId)) +
+  geom_line(linewidth=1, alpha = 0.7, position = position_dodge(width = 0.2)) +
+  scale_colour_manual(values = sample(color, n)) +
+  #geom_jitter(width = 0.1, height = 0.1) +
+  theme + theme(legend.position = "none") +
+  facet_grid(group ~ .) +
+  coord_cartesian(ylim = c(1,5)) + #scale_y_continuous(labels = scales::label_percent(), breaks=seq(0,1,0.1)) +
+  ylab("Likert scale rating") +
+  xlab("Emotion") +
+  labs(fill = "Group") +
+  ggtitle("Epistemic emotions profile elicited by the AO maniplation")
+
+```
+
+
+
+Participants were also provided with the option to expand on the rating using comments.
+
+```{r, echo=F}
+for (i in 1:length(unique(df$EES_comment))) {
+  cat(unique(df$EES_comment)[i], "\n\n")
+}
+
+```
+
+## Results: Performance in the learning outcome assessment
+
+The learning outcome assessment consisted of cued recall (free text format) and cued recognition (four-alternative forced choice) items. Below, performance is determined for both types of questions separately.  
+
+### Free text format items
+
+The learning outcome assessment contained eight free text format items. For each item, the correct solution was determined before the assessment was administered. Additionally, upon viewing the answers (blind of condition), additional acceptable responses were determined ***in an iterative process***.  
+
+#### Performance for each item
+Based on the first iteration, the results are shown below. For each item, the item text together with the correct response is shown, followed by all unique answers given (blind of group), and the accepted stems used in the partial string comparison. Additionally, the success rate was computed for each item, i.e., the total percentage of participants that were awarded a point for the respective item.
+
+
+```{r, include=T, echo=F, results='asis'}
+# determine all items in free text format
+free_text <- rand$order[rand$option_a == ""]
+
+# define acceptable solutions
+accepted <- list(c("morpheme"), #i6
+                 c("strateg","startegies"), #8
+                 c("disciplin","disaplin"," specific","-specific"), #i10
+                 c("6"), #i11
+                 c("infer","deduct","reason"), #i13
+                 c("phoneme","sound"," unit"), #i17
+                 c("fluency","dluency3","prosody","automaticity"), #i21
+                 c("3")) #i22
+
+names(accepted) <- free_text
+
+# test against chance
+binom <- data.frame(i = character(length(free_text)),
+                    n_success = numeric(length(free_text)),
+                    n_trial = numeric(length(free_text)),
+                    p_val = numeric(length(free_text)),
+                    ci_lower = numeric(length(free_text)),
+                    ci_upper = numeric(length(free_text)))
+p_cor <- 0.05/length(free_text) # bonferroni
+
+# --- loop through all questions to compute score, assign label, etc --- #
+for (i in 1:length(free_text)) {
+  
+  # current item
+  item <- free_text[i]
+  
+  # show question and correct response
+  cat("\n  \n  \n  \n")
+  cat("\n",item, "**ITEM:", rand[rand$order == item, "question"], "**\n")
+  cat("\n*CORRECT:*", rand[rand$order == item, "solution"], "\n")
+  
+  # create response and score variable for each question
+  df[,paste0(item, "_response")] <- df[,paste0(item)]
+  
+  # show all unique responses
+  cat("\n\n*GIVEN ANSWERS:*", unique(tolower(df[,paste0(item, "_response")])), sep = " -/- ")
+  
+  # show accepted
+  cat("\n\n*ACCEPTED STEMS:*", accepted[[item]], sep = " -/- ")
+  
+  # award points
+  # if the provided answer matches any of the accepted patterns defined above, award point
+  df[,paste0(item, "_score")] <- ifelse(grepl(paste(accepted[[item]], collapse = "|"), tolower(df[, item])), 1, 0)
+  
+  # show performance on item whole sample
+  cat("\n\n*SUCESS RATE:*", mean(df[,paste0(item, "_score")])*100) 
+  cat("%")
+  # tmp <- psych::describe(df[,paste0(item, "_score")])
+  # row.names(tmp) <- NULL
+  # tmp$vars <- NULL
+  # print(knitr::kable(tmp))
+  # cat('\n\n<!-- -->\n\n')
+  
+  # compute binomial test
+  test <- binom.test(x = sum(df[, paste0(item, "_score")]),
+                     n = nrow(df), 
+                     p = 0.5,
+                     #alternative = "greater",
+                     conf.level = 1-p_cor)
+  # populate table
+  binom$i[i] <- as.character(item)
+  binom$n_success[i] <- test$statistic
+  binom$n_trial[i] <- test$parameter
+  binom$p_val[i] <- test$p.value
+  binom$ci_lower[i] <- test$conf.int[1]
+  binom$ci_upper[i] <- test$conf.int[2]
+  
+}
+```
+
+
+>>
+To ensure good item selection and coding, the success rate should allow maximum variance, i.e., be around 50%.  
+>>  
+Based on the current coding framework, items **i6** and **i22** are close to 50%. However, both target a similar topic, i.e., morphemes.  
+Other items have success rates that are well above 50%, i.e., **i13** (on inference), **i17** (on phonemes), and **i21** (on fluency). Of note, for items i17 and i21, the accepted answers could be streamlined to be less lenient.  
+>>  
+Items **i8** (on comprehension strategies), **i10** (on disciplinary literacy), and **i11** (on graphemes) have success rates below 50%. However, it is important to keep in mind that participants in this pilot study were *not* exposed to the actual learning materials that contains the tested information.  
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# --- visualise average performance on each item --- #
+# compute proportion of correct responses
+binom$perc <- binom$n_success/binom$n_trial
+binom$i <- factor(binom$i, levels = free_text)
+# use desc as input for a bar graph for each question
+ggplot(binom, aes(x = i, y = perc)) +
+  geom_bar(stat = "identity", fill = ambition_coral) +
+  geom_errorbar(aes(ymin=ci_lower, ymax=ci_upper), width=.2) +
+  geom_hline(yintercept = 0.5, linetype="dashed") +
+  theme_bw() + 
+  coord_cartesian(ylim = c(0,1)) + scale_y_continuous(labels = scales::label_percent(), breaks=seq(0,1,0.1)) +
+  ylab("Proportion correct (+/- 99% CI)") +
+  xlab("Questions") +
+  ggtitle("Comparison to optimal success rate for free-text items")
+```
+
+#### Overall performance  
+
+As a last step, the descriptives for the performance across all free text answer items was computed across the whole sample and within each group. A t-test revealed that there was no difference in performance between both groups.  
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# complete total performance score for free text (ft)
+df$i_ft <- rowSums(df[, paste0(free_text, "_score")])
+
+# determine p_cor
+p_cor = 0.05/2
+
+# get descriptives whole sample
+tmp <- psych::describe(df[, "i_ft"])
+row.names(tmp) <- NULL
+tmp$vars <- NULL
+print(knitr::kable(tmp, caption = "Descriptives for whole sample"))
+cat('\n\n<!-- -->\n\n')
+
+# get descriptives per group
+tmp <- do.call("rbind",psych::describeBy(df[, "i_ft"], group = df$group))
+tmp$vars <- NULL
+print(knitr::kable(tmp, caption = "Descriptives within each group"))
+cat('\n\n<!-- -->\n\n')
+
+# compute two-sample t-test
+out <- t.test(df[, "i_ft"] ~ df$group, data=df)
+cat("\t\t\tTwo-Sample t-test, t(", out$parameter,") = ", out$statistic, ", p = ", out$p.value, sep="")
+
+# add asteriks if p < p_cor
+if (out$p.value < p_cor) {
+  cat(" ***")
+}
+cat("\n\n")
+
+
+# create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
+plt <- plot_raincloud(df, "group", "i_ft", 
+                      xlower = 1, xupper = 2,
+                      #ylower = 0, yupper = nrow(rand), ybreaks = 2, yintercept = nrow(rand)/4,
+                      title = "Descriptive visualisation of performance on free text items",
+                      ylab = "Total number of correct items")
+```
+
+### Multiple choice items  
+
+The learning outcome assessment contained 15 multiple-choice format items. For each item with its four answer option, the pattern of selected/unselected options was compared against the correct pattern. This means that a point was awarded if an option was correctly selected *and* if an option was correctly not selected. As such, for each item, the maximum score is 4.  
+
+#### Performance for each item
+Below, the results are shown for each item separately (blind of group). The item text is plotted together with the correct options. A plot was created that illustrates how often each response option was selected (correct options highlighted), together with the success rate for deciding correctly for each option (in coral). Descriptives of the performance on the given item (maximum possible score 4, minimum possible score 0) were computed as well. 
+
+```{r, include=T, echo=F, results='asis', fig.align='center'}
+
+
+# determine all items in multiple choice format
+mc <- rand$order[!rand$option_a == ""]
+# determine number of choices (nc) for each item in MC forggkjmat
+nc <- sum(grepl("option", names(rand)))
+
+# --- loop through all questions to compute score, assign label, etc --- #
+for (i in 1:length(mc)) {
+# for (i in 1:1) {
+  
+  # current item
+  item <- mc[i]
+  # item <- "i5"
+  
+  # create empty data frame to test each answer option against chance
+  binom <- data.frame(i = character(nc),
+                      n_success = numeric(nc),
+                      n_trial = numeric(nc),
+                      p_val = numeric(nc),
+                      ci_lower = numeric(nc),
+                      ci_upper = numeric(nc))
+  
+  # --- process each answer option --- #
+  for (ii in 1:nc){
+    
+    # --- scoring etc ---
+    
+    # add question text (for later merging)
+    df[, paste0(item, "_question")] <- rand$question[rand$order==item]
+    
+    # create response variable for each question and whether an option has been ticked
+    df[,paste0(item, "_", ii, "_response")] <- df[,paste0(item, "_", ii)]
+    df[,paste0(item, "_", ii, "_selected")] <- ifelse(df[,paste0(item, "_", ii)] == "0", 0, 1) # numeric, 1 = selected
+    
+    # select the answer option wording
+    option <- rand[rand$order == item, paste0("option_", letters[ii])]
+    
+    # determine correct answer (whether the option should have been selected or not)
+    correct <- ifelse(grepl(option, rand[rand$order == item,"solution"]), option, 0)
+    
+    # compare given answer with correct answer to assign score
+    df[,paste0(item, "_", ii, "_score")] <- ifelse(df[,paste0(item, "_", ii)] == correct, 1, 0)
+    
+    # remove orig
+    #df[,paste0(item, "_", ii)] <- NULL
+    
+    # --- compute binomial test to test against chance level for each answer option ---
+    
+    # compute test against chance level performance
+    test <- binom.test(x = sum(df[, paste0(item, "_", ii, "_score")]),
+                       n = nrow(df), 
+                       p = 0.5) # testing for each answer option, hence 50:50 chance of (not) selecting correctly
+    
+    # populate table
+    binom$i[ii] <- paste("option", letters[ii])
+    binom$n_success[ii] <- test$statistic
+    binom$n_trial[ii] <- test$parameter
+    binom$p_val[ii] <- test$p.value
+    binom$ci_lower[ii] <- test$conf.int[1]
+    binom$ci_upper[ii] <- test$conf.int[2]
+    
+  }
+  
+  # rename column
+  names(binom)[names(binom) == "i"] <- paste0(item, "_label")
+  binom$perc_success <- binom$n_success/binom$n_trial
+  
+  # --- print to console/markdown ---
+  cat("\n\n")
+  cat("\n**", item, ". ", rand$question[rand$order==item],"**", sep = "")
+  
+  
+  cat("\n\n  (a)", rand$option_a[rand$order==item])
+  cat("\n  (b)", rand$option_b[rand$order==item])
+  cat("\n  (c)", rand$option_c[rand$order==item])
+  cat("\n  (d)", rand$option_d[rand$order==item])
+  
+  
+  cat("\n\n*[solution:", rand$solution[rand$order==item])
+  cat("]*\n\n\n")
+  
+  
+  # --- create data frame for plotting ---
+  
+  # extract information from rand: labels each answer option according to its order of occurrence and contains question text
+  tmp <- subset(rand_l, order == item)
+  tmp$order <- NULL
+  names(tmp) <- c(paste0(item, "_question"), paste0(item, "_label"), paste0(item, "_option"),  paste0(item, "_sol"))
+  
+  # select subset of columns of df --> allows later merging to be "prettier" with respect to the order of columns
+  tmp2 <- df[, c(grep("ResponseId", names(df)), grep("group", names(df)), grep(paste0(item, "_question"), names(df)), grep( "_selected", names(df)))] # get all data for current item
+  tmp2 <- tmp2[, c(grep("ResponseId", names(tmp2)), grep("group", names(tmp2)), grep(item, names(tmp2)))] # get all data for current item
+  tmp2 <- reshape2::melt(tmp2, id = c("ResponseId", "group", paste0(item, "_question")), value.name = "selected") # make long format so that there is a row per answer option
+  tmp2$variable <- ifelse(grepl("_1_", tmp2$variable), "option a",
+                          ifelse(grepl("_2_", tmp2$variable), "option b",
+                                 ifelse(grepl("_3_", tmp2$variable), "option c",
+                                        ifelse(grepl("_4_", tmp2$variable), "option d", NA))))
+  names(tmp2)[names(tmp2) == "variable"] <- paste0(item, "_label")
+  # compute proportion of ppt that selected a response
+  tmp2 <- tmp2 %>% filter(selected == 1) %>% group_by(get(paste0(item, "_label"))) %>% count()
+  names(tmp2) <- c(paste0(item, "_label"), "n_selected")
+  
+  # merge tmp objects
+  tmp <- merge(tmp, tmp2, by = c(paste0(item, "_label")), all.x = T) # creates NA for missing combinations
+  tmp$n_selected <- ifelse(is.na(tmp$n_selected), 0, tmp$n_selected) # overwrites NA with 0
+  
+  # merge information stored in tmp objects with binom object
+  binom <- merge(tmp, binom, by = paste0(item, "_label"))
+  binom$perc_selected <- binom$n_selected/binom$n_trial
+  rm(tmp, tmp2)
+  
+  # determine fill colour
+  cols <- c(ambition_charcole, ambition_coral)
+  cols <- c(col.tint(navy, tint = 0.4), navy)
+  labels <- c("incorrect", "correct")
+  if(length(unique(binom[, paste0(item, "_sol")])) == 1){
+    cols <- cols[-1]
+    labels <- labels[-1]
+  }
+  
+  # create plot
+  plt <- ggplot(binom, aes(x = get(paste0(item, "_label")), fill = get(paste0(item, "_sol")) )) +
+    # bar = proportion selected
+    geom_bar(aes(y=perc_selected), stat = "identity") +
+    # point range = success rate and CI binomal test
+    geom_pointrange(aes(y=perc_success,ymin=ci_lower, ymax=ci_upper), size=1, fill="white", shape=22, col = coral, linewidth=1, alpha = 0.75) +
+    theme_bw() +
+    ggtitle(item) +
+    xlab("Answer options") +
+    ylab("Proportion selected") + coord_cartesian(ylim = c(0,1)) +
+    #ggtitle(unique(df[, paste0(item, "_question")])) +
+    scale_fill_manual(values = cols, labels=labels) +
+    theme(legend.position = "bottom") +
+    #scale_x_discrete(labels = paste("Option", 1:4)) +
+    scale_y_continuous(labels = scales::label_percent(), breaks=seq(0,1,0.1),
+                       # Add a second axis and specify its features
+                       sec.axis = dup_axis(name="Sucess rate")) + 
+    geom_hline(yintercept = 0.5, linetype="dashed", col = coral, linewidth = 1, alpha = 0.5) +
+    theme(axis.title.y.left = element_text(color = navy),
+          axis.text.y.left = element_text(color = navy),
+          axis.ticks.y.left = element_line(colour = navy),
+          
+          axis.title.y.right = element_text(color = col.tint(coral, tint = 0.75)),
+          axis.text.y.right = element_text(color = col.tint(coral, tint = 0.75)),
+          axis.ticks.y.right = element_line(colour = col.tint(coral, tint = 0.75)),
+          legend.title = element_blank())
+  
+  print(plt)
+  
+  # --- compute average performance on item ---
+  
+  tmp <- df[, grepl(paste0(item,"_"), names(df))]
+  tmp <- tmp[, grepl("score", names(tmp))]
+  
+  df[, paste0(item, "_totscore")] <- rowSums(tmp)
+  
+  # calculate descriptives in table
+  tmp <- psych::describe(df[, paste0(item, "_totscore")])
+  
+  row.names(tmp) <- NULL
+  tmp$vars <- NULL
+  
+  print(knitr::kable(tmp))
+  cat('\n\n<!-- -->\n\n')
+  
+  
+  
+}
+
+#write.csv(df, file = file.path(proj_dir, "df.csv"))
+
+```
+
+
+> 
+As shown above, the items and corresponding answer options may overall be too easy so that ceiling effects are likely.
+
+
+```{r, include=T, echo=F, results='asis', fig.align='center'}
+# --- visualise average performance on each item --- #
+
+# compute average performance for each item
+mean <- apply(df[, paste0(mc, "_totscore")], 2, mean)
+sd <- apply(df[, paste0(mc, "_totscore")], 2, sd)
+se <- sd/sqrt(nrow(df))
+
+points <- data.frame(item = gsub("_totscore", "", names(mean)),
+                  mean = mean,
+                  se = se)
+points$item <- factor(points$item, levels = mc)
+
+# use desc as input for a bar graph for each question
+ggplot(points, aes(x = item, y = mean)) +
+  geom_bar(stat = "identity", fill = ambition_coral) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.2) +
+  theme_bw() + 
+  coord_cartesian(ylim = c(0,4)) + #scale_y_continuous(labels = scales::label_percent(), breaks=seq(0,1,0.1)) +
+  ylab("Points awarded (mean +/- SE)") +
+  xlab("Questions") +
+  ggtitle("Performance on each multiple choice item")
+
+```
+
+
+
+#### Overall performance  
+
+As a last step, the descriptives for the performance across all multiple choice items was computed across the whole sample and within each group. The AO group performed slightly better. A t-test revealed that there was no statistically significant difference in performance between both groups.  
+
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# complete total performance score for free text (ft)
+df$i_mc <- rowSums(df[, paste0(mc, "_totscore")])
+
+# determine p_cor
+p_cor = 0.05/2
+
+# get descriptives whole sample
+tmp <- psych::describe(df[, "i_mc"])
+row.names(tmp) <- NULL
+tmp$vars <- NULL
+print(knitr::kable(tmp, caption = "Descriptives for whole sample"))
+cat('\n\n<!-- -->\n\n')
+
+# get descriptives per group
+tmp <- do.call("rbind",psych::describeBy(df[, "i_mc"], group = df$group))
+tmp$vars <- NULL
+print(knitr::kable(tmp, caption = "Descriptives within each group"))
+cat('\n\n<!-- -->\n\n')
+
+# compute two-sample t-test
+out <- t.test(df[, "i_mc"] ~ df$group, data=df)
+cat("\t\t\tTwo-Sample t-test, t(", out$parameter,") = ", out$statistic, ", p = ", out$p.value, sep="")
+
+# add asteriks if p < p_cor
+if (out$p.value < p_cor) {
+  cat(" ***")
+}
+cat("\n\n")
+
+
+# create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
+plt <- plot_raincloud(df, "group", "i_mc", 
+                      xlower = 1, xupper = 2,
+                      #ylower = 0, yupper = nrow(rand), ybreaks = 2, yintercept = nrow(rand)/4,
+                      title = "Descriptive visualisation of performance on multiple choice items",
+                      ylab = "Total number of points")
+
+```
+
+
+
+
+### Learning Outcome Assessment - Totals
+
+Below, the descriptives are shown for the learning outcome assessment in total. No difference between the groups is observed.  
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# complete total performance score for free text (ft)
+df$i_total <- rowSums(df[, grepl("_score", names(df))]) # same as df$i_ft + df$i_mc
+
+# determine p_cor
+p_cor = 0.05/2
+
+# get descriptives whole sample
+tmp <- psych::describe(df[, "i_total"])
+row.names(tmp) <- NULL
+tmp$vars <- NULL
+print(knitr::kable(tmp, caption = "Descriptives for whole sample"))
+cat('\n\n<!-- -->\n\n')
+
+# get descriptives per group
+tmp <- do.call("rbind",psych::describeBy(df[, "i_total"], group = df$group))
+tmp$vars <- NULL
+print(knitr::kable(tmp, caption = "Descriptives within each group"))
+cat('\n\n<!-- -->\n\n')
+
+# compute two-sample t-test
+out <- t.test(df[, "i_total"] ~ df$group, data=df)
+cat("\t\t\tTwo-Sample t-test, t(", out$parameter,") = ", out$statistic, ", p = ", out$p.value, sep="")
+
+# add asteriks if p < p_cor
+if (out$p.value < p_cor) {
+  cat(" ***")
+}
+cat("\n\n")
+
+
+# create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
+plt <- plot_raincloud(df, "group", "i_total", 
+                      xlower = 1, xupper = 2,
+                      #ylower = 0, yupper = nrow(rand), ybreaks = 2, yintercept = nrow(rand)/4,
+                      title = "Descriptive visualisation of performance on all items",
+                      ylab = "Total number of points")
+
+```
+
+
+### Results Feedback survey  
+
+Feedback regarding the learning outcome assessment was evaluated.   
+
+```{r, include= F}
+# rename variables that contain feedbak info
+names(df)[names(df) == "quest_rating_1"] <- "quest_rat_concise"
+names(df)[names(df) == "quest_rating_2"] <- "quest_rat_easy_to_understand"
+names(df)[names(df) == "quest_rating_3"] <- "quest_rat_comprehensive"
+names(df)[names(df) == "quest_rating_4"] <- "quest_rat_unambiguous"
+```
+
+A 5-point Likert scale rating matrix was presented to participants to obtain ratings on the questions. Each item was rated on a scale from -2 ("strongly disagree") to 2 ("strongly agree"). Raincloud plots were used to visualise distribution and summary statistics for each rating.
+
+```{r, include=FALSE, results='asis', fig.align='center'}
+vs <- names(df)[grepl("_rat_", names(df)) ]
+for (v in 1:length(vs)) {
+  
+  # declare factor
+  df[,vs[v]] <- factor(df[,vs[v]], levels = c("Strongly disagree", "Somewhat disagree", "Neither agree nor disagree", "Somewhat agree", "Strongly agree"))
+  
+  # assign numeric value
+  df[,paste0(vs[v], "_num")] <- ifelse(df[,vs[v]] == "Strongly disagree", -2,
+                                       ifelse(df[,vs[v]] == "Somewhat disagree", -1,
+                                              ifelse(df[,vs[v]] == "Neither agree nor disagree", 0,
+                                                     ifelse(df[,vs[v]] == "Somewhat agree", 1,
+                                                            ifelse(df[,vs[v]] == "Strongly agree", 2,
+                                                                   NA)))))
+  # rescale so that variable
+  #df[,paste0(vs[v], "_score")] <- df[,paste0(vs[v], "_score")] + 3
+  
+}
+
+```
+
+
+```{r, echo=FALSE, results='asis', fig.align='center', fig.width=15}
+
+
+# select subset of variables
+desc <- df[,c(grepl("ResponseId", names(df)) | grepl("_rat_", names(df)))]
+desc <- desc[,c(grepl("ResponseId", names(desc)) | grepl("num", names(desc)))]
+
+# tranform them into long format
+desc <- reshape2::melt(desc, id.vars = "ResponseId")
+
+desc$variable <- gsub("quest_rat_", "", desc$variable)
+desc$variable <- gsub("_num", "", desc$variable)
+desc$variable <- gsub("_", " ", desc$variable)
+
+vars <- unique(desc$variable)
+desc$variable <- factor(desc$variable, levels = vars)
+
+# create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
+plt <- plot_raincloud(desc, "variable", "value", ylower = -2, yupper = 2,
+                      ylab = "Rating", xlab = "Items")
+```
+Additional descriptive statistics were computed and included below.
+
+```{r, echo=FALSE, results='asis', fig.align='center'}
+# select subset of variables
+desc <- df[,c(grepl("ResponseId", names(df)) | grepl("_rat_", names(df)))]
+desc <- desc[,c(grepl("ResponseId", names(desc)) | grepl("num", names(desc)))]
+
+# tranform them into long format
+desc <- reshape2::melt(desc, id.vars = "ResponseId")
+
+# compute descriptive stats, seperately for each rating
+desc <-psych::describeBy(desc$value, desc$variable)
+
+# tranform list to df
+desc <- do.call(rbind.data.frame, desc)
+
+# create better identifier
+desc$vars <- gsub("quest_rat_", "", row.names(desc))
+desc$vars <- gsub("_num", "", desc$vars)
+desc$vars <- gsub("_", " ", desc$vars)
+row.names(desc) <- NULL
+
+vars <- desc$vars
+desc$vars <- factor(desc$vars, levels = vars)
+
+
+# show descriptive stats
+print(knitr::kable(desc))
+cat('\n\n<!-- -->\n\n')
+
+```
+
+Participants were also provided with the option to expand on the rating using comments.
+
+```{r, echo=F}
+for (i in 1:length(unique(df$quest_rating_com))) {
+  cat(unique(df$quest_rating_com)[i], "\n\n")
+}
+```
+
+
