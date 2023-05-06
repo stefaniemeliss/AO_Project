@@ -5,3 +5,4 @@
 *.Rproj
 *.html
 *.csv
+pilots/colour_palette.R
