@@ -25,10 +25,10 @@ setwd(cd)
 # ---------- define all questions and corresponding answers ----------
 
 # i1
-i01_q  <- "A pupil’s reading comprehension appears to be significantly below age-related expectations. Weaknesses with which aspect(s) of reading might contribute to this? Select all correct answers."
-i01_a  <- "Word recognition"
-i01_b <- "Fluency" 
-i01_c <- "Background knowledge relevant to the texts in the assessment" 
+i01_q  <- "A pupil’s reading comprehension appears to be significantly below age-related expectations. Weaknesses with which aspect(s) of reading might contribute to this? (Select all correct answers.)"
+i01_a  <- "Word recognition."
+i01_b <- "Fluency." 
+i01_c <- "Background knowledge relevant to the texts in the assessment." 
 i01_d <- "Awareness of the difference between Tier 2 and Tier 3 vocabulary."
 i01_sol <- paste(i01_a, i01_b, i01_c, sep = " / ")
 
@@ -42,10 +42,10 @@ i02_sol <- "phoneme"
 
 # q3
 i03_q <- "Understanding the role of morphemes in the English writing system is most likely to support… (Pick the two most appropriate answers)" 
-i03_a <- "Word recognition" 
-i03_b <- "Vocabulary development"
-i03_c <- "Comprehension strategy use"
-i03_d <- "Background knowledge development"
+i03_a <- "Word recognition." 
+i03_b <- "Vocabulary development."
+i03_c <- "Comprehension strategy use."
+i03_d <- "Background knowledge development."
 i03_sol <- paste(i03_a, i03_b, sep = " / ")
 
 # q4
@@ -54,10 +54,10 @@ i04_a <- ""
 i04_b <- "" 
 i04_c <- "" 
 i04_d <- ""
-i04_sol <- "inference"
+i04_sol <- "inference/reasoning"
 
 # q5
-i05_q <- "A pupil takes two reading comprehension assessments on the same day. The pupil achieves two very different scores on these assessments. This suggests that… (Select all correct answers.)" 
+i05_q <- "A pupil takes two reading comprehension assessments on the same day. The pupil achieves two very different scores on these assessments. This suggests that... (Select all correct answers.)" 
 i05_a <- "The tests required different vocabulary and background knowledge." 
 i05_b <- "The results of individual comprehension assessments should not be treated as a definitive guide to a pupil’s reading ability." 
 i05_c <- "Reading comprehension tests are of no value." 
@@ -65,12 +65,12 @@ i05_d <- "The pupil improved their reading fluency significantly."
 i05_sol <- paste(i05_a, i05_b, sep = " / ")
 
 # q6
-i06_q <- "A literacy lead and a science lead are designing the science curriculum to support pupils’ reading development. Which of these are likely to be useful elements of such a curriculum? Select all the correct answers" 
+i06_q <- "A literacy lead and a science lead are designing the science curriculum to support pupils’ reading development. Which of these are likely to be useful elements of such a curriculum? (Select all correct answers.)" 
 i06_a <- "Opportunities to draw inferences from pictures." 
 i06_b <- "Carefully sequenced content to help build knowledge of the world." 
 i06_c <- "Selected key scientific words to be taught to pupils." 
 i06_d <- "Texts embedded into the curriculum that provide opportunities for reading practice."
-i06_sol <- paste(i06_a, i06_b, sep = " / ")
+i06_sol <- paste(i06_b, i06_c, i06_d, sep = " / ")
 
 # q7
 i07_q <- "How many graphemes are there in the word ‘bracket’?" 
@@ -89,7 +89,7 @@ i08_d <- ""
 i08_sol <- "3"
 
 # q9
-i09_q <- "Which pupils might benefit most from being taught how and when to summarise what they read and ask questions about what they read?" 
+i09_q <- "Which pupils might benefit most from being taught how and when to summarise what they read and ask questions about what they read? (Select all correct answers.)" 
 i09_a <- "Pupils who appear to be relatively fluent readers but who pay little attention to building meaning as they read." 
 i09_b <- "Pupils who struggle to decode words."
 i09_c <- "Pupils who recognise individual words adequately, but who struggle to read fluently." 
@@ -105,15 +105,15 @@ i10_d <- "Appropriate stress of words."
 i10_sol <- paste(i10_a, i10_b, i10_c, i10_d, sep = " / ")
 
 # q11
-i11_q <- "Which of these are examples of comprehension strategies that might be used by pupils to support them to build meaning from a challenging text?" 
-i11_a <- "Clarifying" 
-i11_b <- "Summarising" 
-i11_c <- "Highlighting" 
-i11_d <- "Blending"
+i11_q <- "Which of these are examples of comprehension strategies that might be used by pupils to support them to build meaning from a challenging text? (Select all correct answers.)" 
+i11_a <- "Clarifying." 
+i11_b <- "Summarising." 
+i11_c <- "Highlighting." 
+i11_d <- "Blending."
 i11_sol <- paste(i11_a, i11_b, sep = " / ")
 
 # q12
-i12_q <- "Which of these words, when spoken aloud, contain a phoneme that is also contained within the word ‘chef’?" 
+i12_q <- "Which of these words, when spoken aloud, contain a phoneme that is also contained within the word ‘chef’? (Select all correct answers.)" 
 i12_a <- "Wash" 
 i12_b <- "March" 
 i12_c <- "See" 
@@ -137,7 +137,7 @@ i14_d <- "Knowledge of the ‘code’ of correspondences between phonemes and gr
 i14_sol <- paste(i14_a, i14_b, sep = " / ")
 
 # q15
-i15_q <- "Inferences are..." 
+i15_q <- "Inferences are... (Select all correct answers.)" 
 i15_a <- "Made by readers when they reach conclusions that go beyond the literal meaning of the text." 
 i15_b <- "Central to the construction of meaning when reading." 
 i15_c <- "Required only when reading narrative texts." 
@@ -185,12 +185,12 @@ i20_d <- "Recognising the correspondence between graphemes and phonemes becomes 
 i20_sol <- paste(i20_a, sep = " / ")
 
 # q21
-i21_q <- "A text says, ‘Harriet kicked the ball into the net and ran off with her arms in the air.’ A reader reasons that Harriet is likely to be playing football. This is an example of an inference because…" 
+i21_q <- "A text says, ‘Harriet kicked the ball into the net and ran off with her arms in the air.’ A reader reasons that Harriet is likely to be playing football. This is an example of an inference because...  (Select all correct answers.)" 
 i21_a <- "It requires the reader to draw a conclusion that isn’t literally stated in the text." 
 i21_b <- "It requires the reader to recognise every word." 
 i21_c <- "It requires the reader to read sentences that came before this one." 
 i21_d <- "It requires the reader to ignore some of the words and focus on others."
-i21_sol <- paste(i20_a, sep = " / ")
+i21_sol <- paste(i21_a, sep = " / ")
 
 # q22
 i22_q <- "Brief teaching of different ____________ can be used to ensure that pupils are consciously aware that reading is an active constructive process." 
@@ -201,11 +201,11 @@ i22_d <- ""
 i22_sol <- "(comprehension) strategies"
 
 # q23
-i23_q <- "The set of conventions of a writing system are called…" 
-i23_a <- "An orthography"
-i23_b <- "A phonology"
-i23_c <- "A morphology"
-i23_d <- "A phonics system"
+i23_q <- "The set of conventions of a writing system are called... (Select all correct answers.)" 
+i23_a <- "An orthography."
+i23_b <- "A phonology."
+i23_c <- "A morphology."
+i23_d <- "A phonics system."
 i23_sol <- paste(i23_a, sep = " / ")
 
 
@@ -300,7 +300,7 @@ remove_column( # removes solution column
 ```
 
 ```{r, include=F}
-q_rand$order <- paste0("Q",1:nrow(q_rand))
+q_rand$order <- paste0("i",1:nrow(q_rand))
 
 order <- q_rand[, c("question", "order")]
 
@@ -347,7 +347,7 @@ for (q in 1:nrow(q_rand)) {
 
 
 
-```{r, echo=FALSE, results='asis'}
+```{r, include=FALSE, results='asis'}
 for (q in 1:nrow(q_rand)) {
   
   # print to console/markdown
