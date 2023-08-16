@@ -7,29 +7,6 @@
 -- {"question":{"id":3832305,"text":"How many years of experience do you have working as a qualified classroom teacher? Please provide an estimate rounded to full years. If you prefer not to say, please leave blank.","question_id":1326,"requirements":{"answer_type":"text","text_required":false}},"response":{"free_text":{"id":"3832305_ft","text":null}}}]
 
 
--- cleaned data
-SELECT
-    user_id, 
-    --user_name, 
-    "completedDt" AS demogs_completed,    
-    -- gender
-    response -> 0 -> 'response' -> 'choices' -> 0 ->> 'selected' AS male,
-    response -> 0 -> 'response' -> 'choices' -> 1 ->> 'selected' AS female,
-    response -> 0 -> 'response' -> 'choices' -> 2 ->> 'selected' AS different,
-    response -> 0 -> 'response' -> 'choices' -> 3 ->> 'selected' AS not_disclosed,
-    -- age
-    response -> 1 -> 'response' -> 'free_text' -> 'text' AS age,
-    -- experience
-    response -> 2 -> 'response' -> 'free_text' -> 'text' AS experience,
-    response AS demogs_raw
-FROM
-    user_mod_reflections AS umr
-WHERE
-    mod_course_name ILIKE '%npqll%develop%language'
-    AND mod_course_name NOT ILIKE '%test%'
-    AND object_name ILIKE '%demographic%'
-
-    
 -- raw data
 SELECT
     *
@@ -39,3 +16,27 @@ WHERE
     mod_course_name ILIKE '%npqll%develop%language'
     AND mod_course_name NOT ILIKE '%test%'
     AND object_name ILIKE '%demographic%'
+
+-- cleaned data
+SELECT
+    user_id, 
+    --user_name, 
+    "completedDt" AS dt_demogs_complete, -- same AS "lastUpdatedDt" due TO one-time submission
+    -- gender
+    response -> 0 -> 'response' -> 'choices' -> 0 ->> 'selected' AS male,
+    response -> 0 -> 'response' -> 'choices' -> 1 ->> 'selected' AS female,
+    response -> 0 -> 'response' -> 'choices' -> 2 ->> 'selected' AS different,
+    response -> 0 -> 'response' -> 'choices' -> 3 ->> 'selected' AS not_disclosed,
+    -- age
+    response -> 1 -> 'response' -> 'free_text' -> 'text' AS age,
+    -- experience
+    response -> 2 -> 'response' -> 'free_text' -> 'text' AS experience,
+    response AS raw_demogs
+FROM
+    user_mod_reflections AS umr
+WHERE
+    mod_course_name ILIKE '%npqll%develop%language'
+    AND mod_course_name NOT ILIKE '%test%'
+    AND object_name ILIKE '%demographic%'
+
+    

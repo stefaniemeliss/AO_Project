@@ -13,7 +13,7 @@ SELECT
     completed AS dt_mod_complete, -- timestamp WHEN MODULE was completed
     umo."eventSubject" event_subject, -- engagement WITH MODULE vs OBJECT
     umo."object" ->> 'objectType' AS object_type, -- TYPE OF OBJECT: v(ideo), m(arkdown), q(uiz), r(eflection)
-    umo."object" ->> 'name' AS object_name, -- TYPE OF OBJECT: v(ideo), m(arkdown), q(uiz), r(eflection)
+    umo."object" ->> 'name' AS object_name,
     umo."eventType" AS event_type, -- OBJECT a(ssessed) OR c(ompleted)
     umo."eventDt" AS dt_event -- time stamp OF engagement WITH object
 FROM user_modules um -- MODULE data
