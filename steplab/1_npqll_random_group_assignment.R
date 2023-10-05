@@ -1,3 +1,8 @@
+###############################################################################
+# this script randomises consenting participants to groups
+###############################################################################
+
+
 # --- randomise ppt to groups ---
 rm(list = ls())
 set.seed(1212) # make reproducible
