@@ -1,4 +1,9 @@
-### process tmp data ###
+###############################################################################
+# this script processes data collected at baseline
+###############################################################################
+
+
+#### --- set ups --- ####
 
 # empty work space
 rm(list = ls())
@@ -11,7 +16,7 @@ dir_sql <- file.path(dir, "queries")
 # load in functions
 source(file.path(dir, "steplab", "extract_json.R"))
 
-# - get pretest data
+#### --- get pretest data --- ####
 
 # load in file
 file <- list.files(path = dir_sql, pattern = glob2rx("3*pretest*.csv"), full.names = T)
@@ -20,105 +25,137 @@ df <- read.csv(file)
 # process date
 df$dt_pretest_complete <- as.POSIXct(df$dt_pretest_complete)
 
-# - process raw responses -
-
-# test characteristics
-n_choice <- 4
-n_quest <- 10
+#### --- process raw responses --- ####
 
 # extract json info into list
-tmp <- apply(df[grep("raw_pretest", names(df))], MARGIN = 1, extract_json, data = df, col = "raw_pretest")
+sc <- apply(df[grep("raw_pretest", names(df))], MARGIN = 1, extract_json, data = df, col = "raw_pretest")
+
 # make list to df
-tmp <- as.data.frame(do.call(rbind, tmp))
+sc <- as.data.frame(do.call(rbind, sc))
+
+# rectangle 
+sc <- sc %>% 
+  unnest_wider(data) %>% 
+  unnest_wider(question) %>%
+  unnest_wider(requirements) %>%
+  unnest_wider(response) %>%
+  unnest_wider(choices, names_sep = "_") %>%
+  unnest_wider(choices_1, names_sep = "_") %>%
+  unnest_wider(choices_2, names_sep = "_") %>%
+  unnest_wider(choices_3, names_sep = "_") %>%
+  unnest_wider(choices_4, names_sep = "_")
 
 # rename questions
-names(tmp)[grep("question.text", names(tmp))] <- paste0("question_text_", 1:n_quest)
+names(sc)[names(sc) == "text"] <- "question_text"
 
-# rename response options
-for (i in 1:n_quest) {
+# reduce to question and answer columns only
+sc <- sc[, grep("user_id|_text|selected|answers", names(sc))]
+
+# add question number
+sc$iter <- rep.int(1:length(unique(sc$question_text)), times = nrow(df))
+
+# check for any errors
+sc %>% group_by(iter) %>%
+  summarise(mean = mean(max_answers))
+
+# get questions into wide format
+questions <- reshape2::dcast(sc, user_id ~ iter, value.var = "question_text") # reshape from long to wide
+names(questions)[2:ncol(questions)] <- paste0("question_text_", names(questions)[2:ncol(questions)]) # rename
+
+# get choice options into wide format
+n_choice <- ncol(sc[, grep(glob2rx('choices*text'), names(sc))])
+
+for (i in 1:n_choice) {
+  
+  # choice text
+  choice <- reshape2::dcast(sc, user_id ~ iter, value.var = paste0("choices_", i, "_text")) # reshape from long to wide
+  names(choice)[2:ncol(choice)] <- paste0("question_", names(choice)[2:ncol(choice)], "_choice_", i) # rename
+  
+  # selected
+  selected <- reshape2::dcast(sc, user_id ~ iter, value.var = paste0("choices_", i, "_selected")) # reshape from long to wide
+  names(selected)[2:ncol(selected)] <- paste0("question_", names(selected)[2:ncol(selected)], "_selected_", i) # rename
+  
+  # merge and combine
   if (i == 1) {
-    names <- paste0("question_", i, paste0("_choice_", 1:n_choice))
+    responses <- merge(choice, selected, by = "user_id")
   } else {
-    names <- c(names, paste0("question_", i, paste0("_choice_", 1:n_choice)))
+    responses <- merge(responses, merge(choice, selected, by = "user_id"), by = "user_id")
   }
+  
+  rm(choice, selected)
+  
 }
-names(tmp)[grep("response.choices.text", names(tmp))] <- names
 
-# rename response choices
-for (i in 1:n_quest) {
-  if (i == 1) {
-    names <- paste0("question_", i, paste0("_selected_", 1:n_choice))
-  } else {
-    names <- c(names, paste0("question_", i, paste0("_selected_", 1:n_choice)))
-  }
-}
-names(tmp)[grep("response.choices.selected", names(tmp))] <- names
-
-# - define pretest -
-
-# create vector with all questions and answer options
-question <- apply(tmp[, grep("text", names(tmp))], 2, unique)
-option_1 <- apply(tmp[, grep("choice_1", names(tmp))], 2, unique)
-option_2 <- apply(tmp[, grep("choice_2", names(tmp))], 2, unique)
-option_3 <- apply(tmp[, grep("choice_3", names(tmp))], 2, unique)
-option_4 <- apply(tmp[, grep("choice_4", names(tmp))], 2, unique)
-
-# create vector with soluations
-solution <- c("Go beyond the literal meaning of the text.",
-              "Extrapolating.",
-              "Morphemes.",
-              "A phoneme.",
-              "Accuracy, automaticity and prosody.",
-              "Knowledge of comprehension strategies.",
-              "The smallest chunk of spoken sound that can distinguish one word from another.",
-              "The set of conventions associated with a written language.",
-              "Word recognition and language comprehension.",
-              "Words that are quite low frequency and restricted to specific domains.")
+# merge questions and responses for scoring
+sc <- merge(questions, responses, by = "user_id")
 
 
-# integrate into df
-solutions <- data.frame(question, option_1, option_2, option_3, option_4, solution, order = 1:n_quest)
+#### --- define pretest --- ####
 
-# - score answers -
+# extract all qs
+question <- apply(sc[, grep("text", names(sc))], 2, unique)
+option_1 <- apply(sc[, grep("choice_1", names(sc))], 2, unique)
+option_2 <- apply(sc[, grep("choice_2", names(sc))], 2, unique)
+option_3 <- apply(sc[, grep("choice_3", names(sc))], 2, unique)
+option_4 <- apply(sc[, grep("choice_4", names(sc))], 2, unique)
 
-for (i in 1:n_quest) {
+qs_sc <- data.frame(question, option_1, option_2, option_3, option_4)
+
+# add solutions
+qs_sc$solution <-  c("Go beyond the literal meaning of the text.",
+                     "Extrapolating.",
+                     "Morphemes.",
+                     "A phoneme.",
+                     "Accuracy, automaticity and prosody.",
+                     "Knowledge of comprehension strategies.",
+                     "The smallest chunk of spoken sound that can distinguish one word from another.",
+                     "The set of conventions associated with a written language.",
+                     "Word recognition and language comprehension.",
+                     "Words that are quite low frequency and restricted to specific domains.")
+
+
+
+#### --- score answers --- ####
+
+for (i in 1:nrow(qs_sc)) {
+  
   
   for (ii in 1:n_choice) {
     
     # combine choice and selected into one column: tmpresponse
-    tmp[, paste0("question_", i, "_tmpresponse_", ii)] <- ifelse(tmp[, paste0("question_", i, "_selected_", ii)] == T, tmp[, paste0("question_", i, "_choice_", ii)], "")
+    sc[, paste0("question_", i, "_tmpresponse_", ii)] <- ifelse(sc[, paste0("question_", i, "_selected_", ii)] == T, sc[, paste0("question_", i, "_choice_", ii)], "")
     
   }
   
   # concatenate tmp response into single response
-  tmp[, paste0("question_", i, "_response")] <- paste0(tmp[, paste0("question_", i, "_tmpresponse_1")], 
-                                                       tmp[, paste0("question_", i, "_tmpresponse_2")],
-                                                       tmp[, paste0("question_", i, "_tmpresponse_3")],
-                                                       tmp[, paste0("question_", i, "_tmpresponse_4")])
+  sc[, paste0("question_", i, "_response")] <- paste0(sc[, paste0("question_", i, "_tmpresponse_1")], 
+                                                      sc[, paste0("question_", i, "_tmpresponse_2")],
+                                                      sc[, paste0("question_", i, "_tmpresponse_3")],
+                                                      sc[, paste0("question_", i, "_tmpresponse_4")])
   
   # determine correct answer string
-  correct <- solutions$solution[solutions$order == i]
+  correct <- qs_sc$solution[i]
   
   # create score variable for each question
-  tmp[,paste0("question_", i, "_score")] <- ifelse(tmp[, paste0("question_", i, "_response")] == correct, 1, 0)
+  sc[,paste0("question_", i, "_score")] <- ifelse(sc[, paste0("question_", i, "_response")] == correct, 1, 0)
+  
   
 }
 
 # compute total sum score
-tmp$score_pretest <- rowSums(tmp[, grep("_score", names(tmp))])
+sc$score_pretest <- rowSums(sc[, grep("_score", names(sc))])
 
 # remove all unnecessary columns
-tmp <- tmp[, c("user_id", "score_pretest")]
+sc <- sc[, c("user_id", "score_pretest")]
 
-# merge df and tmp
-pretest <- merge(tmp, df, by = "user_id")
+# merge df and sc
+pretest <- merge(sc, df, by = "user_id")
 
 # delete raw data
 pretest$raw_pretest <- NULL
 
 
-
-# - get demogs data
+#### --- get demogs data --- ####
 
 # load in file
 file <- list.files(path = dir_sql, pattern = glob2rx("3*demogs*.csv"), full.names = T)
