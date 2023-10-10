@@ -23,5 +23,6 @@ WHERE
     mod_course_name ILIKE '%npqll%develop%writing'
     AND mod_course_name NOT ILIKE '%test%'
     AND object_name ILIKE '%post%test%'
+ORDER BY dt_posttest_complete
     
         
