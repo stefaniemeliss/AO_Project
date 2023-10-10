@@ -146,7 +146,7 @@ umo$dt_event <- as.POSIXct(umo$dt_event) # convert to dt object
 df <- merge(um, umo, by = c("user_id", "mod_id"), all = T)
 df <- df[order(df$user_id, df$dt_event), ]
 
-#### --- process data --- ####
+#### --- process data: define exclusion criteria --- ####
 
 # - simplify umo data - #
 
@@ -188,7 +188,7 @@ comp_research <- c(
 
 # has to be done for each time stamp separately before merging 
 
-# object marked as completed
+# object marked as completed #
 c <- obj %>% 
   # only research objects
   filter(object_name %in% objects_research) %>%
@@ -205,7 +205,7 @@ c <- obj %>%
   # combine info fro both groups in one column
   mutate(dt_c_mat_intr = if_else(!is.na(dt_c_mat_intr_exp), dt_c_mat_intr_exp, dt_c_mat_intr_cont))
 
-# object accessed first
+# object accessed first #
 a_first <- obj %>% 
   # only research objects
   filter(object_name %in% objects_research) %>%
@@ -222,7 +222,7 @@ a_first <- obj %>%
   # combine info fro both groups in one column
   mutate(dt_a_f_mat_intr = if_else(!is.na(dt_a_f_mat_intr_exp), dt_a_f_mat_intr_exp, dt_a_f_mat_intr_cont))
 
-# object accessed last
+# object accessed last #
 a_last <- obj %>% 
   # only research objects
   filter(object_name %in% objects_research) %>%
@@ -239,16 +239,19 @@ a_last <- obj %>%
   # combine info fro both groups in one column
   mutate(dt_a_l_mat_intr = if_else(!is.na(dt_a_l_mat_intr_exp), dt_a_l_mat_intr_exp, dt_a_l_mat_intr_cont))
 
-# merge data from all three time stamps
+# merge data from all three time stamps #
 dt <- merge(a_first, a_last, by = "user_id")
 dt <- merge(dt, c, by = "user_id")
 rm(a_first, a_last, c)
 
-# exclusion criteria
-# (1) The timestamp of when the object containing the to-be-learned material (Course 3, Module 1) 
-# was accessed predates the timestamp of when the object containing the prior knowledge assessment (Course 2, Module 1) was marked as completed; or 
-# (2) the object containing the to-be-learned material was accessed before the object containing the introductory material.
+# - code exclusion criteria - #
 
+# exclude if #
+
+# (1) timestamp learning material accessed first smaller timestamp baseline test completed
 dt$exclude_1 <- dt$dt_a_f_mat_learn < dt$dt_c_baseline
+
+# (2) timestamp learning material accessed first smaller timestamp introductory material accessed
 dt$exclude_2 <- dt$dt_a_f_mat_learn < dt$dt_a_f_mat_intr
+
 
