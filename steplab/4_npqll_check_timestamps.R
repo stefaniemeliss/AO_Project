@@ -48,7 +48,7 @@ library(dplyr)
 library(arrow)
 
 # source(file.path(dir, "steplab", "extract_json.R"))
-# library(tidyr)
+library(tidyr)
 
 #### --- load data --- ####
 
@@ -133,6 +133,9 @@ for (f in 1:length(files)) {
     umo <- rbind(umo, tmp)
   }
   
+  # handle memory demands
+  rm(tmp)
+  gc()
 }
 
 # process time stamp
@@ -141,4 +144,111 @@ umo$dt_event <- as.POSIXct(umo$dt_event) # convert to dt object
 
 # - combine um and umo to df - #
 df <- merge(um, umo, by = c("user_id", "mod_id"), all = T)
+df <- df[order(df$user_id, df$dt_event), ]
+
+#### --- process data --- ####
+
+# - simplify umo data - #
+
+# for all objects, determine when it was first and last accessed by each user
+a <- umo %>% 
+  filter(event_subject == "object" & event_type == "a") %>%
+  group_by(user_id, object_name) %>%
+  summarise(dt_obj_access_first = min(dt_event, na.rm = T),
+            dt_obj_access_last = max(dt_event, na.rm = T))
+
+# for all objects, determine when it was marked as completed by each user
+c <- umo %>% 
+  filter(event_subject == "object" & event_type == "c") %>%
+  group_by(user_id, object_name) %>%
+  summarise(dt_obj_complete = dt_event) # object only completed once
+
+# combine
+obj <- merge(a, c, by = c("user_id", "object_name"), all = T)
+rm(a, c)
+
+# - define objects that are used for research - #
+objects_research <- c(
+  "Pre-test",
+  "NPQLL_3_1_AO",
+  "NPQLL_3_1_NON-AO",
+  "NPQLL_3_1_Evidence Summary Text",
+  "NPQLL_4_1_research project_post-test"
+)
+# declare their component
+comp_research <- c(
+  "baseline",
+  "mat_intr_exp",
+  "mat_intr_cont",
+  "mat_learn",
+  "post"
+)
+
+# - transform data from long into wide format for each time stamp (first/last/complete) - #
+
+# has to be done for each time stamp separately before merging 
+
+# object marked as completed
+c <- obj %>% 
+  # only research objects
+  filter(object_name %in% objects_research) %>%
+  # rename objects
+  mutate(object_name = ifelse(object_name == objects_research[1], comp_research[1],
+                              ifelse(object_name == objects_research[2], comp_research[2],
+                                     ifelse(object_name == objects_research[3], comp_research[3],
+                                            ifelse(object_name == objects_research[4], comp_research[4],
+                                                   ifelse(object_name == objects_research[5], comp_research[5], NA)))))) %>%
+  # reduce number of columns
+  select(user_id, object_name, dt_obj_complete) %>%
+  # long to wide
+  pivot_wider(names_from = object_name, values_from = dt_obj_complete, names_prefix = "dt_c_") %>%
+  # combine info fro both groups in one column
+  mutate(dt_c_mat_intr = if_else(!is.na(dt_c_mat_intr_exp), dt_c_mat_intr_exp, dt_c_mat_intr_cont))
+
+# object accessed first
+a_first <- obj %>% 
+  # only research objects
+  filter(object_name %in% objects_research) %>%
+  # rename objects
+  mutate(object_name = ifelse(object_name == objects_research[1], comp_research[1],
+                              ifelse(object_name == objects_research[2], comp_research[2],
+                                     ifelse(object_name == objects_research[3], comp_research[3],
+                                            ifelse(object_name == objects_research[4], comp_research[4],
+                                                   ifelse(object_name == objects_research[5], comp_research[5], NA)))))) %>%
+  # reduce number of columns
+  select(user_id, object_name, dt_obj_access_first) %>%
+  # long to wide
+  pivot_wider(names_from = object_name, values_from = dt_obj_access_first, names_prefix = "dt_a_f_") %>%
+  # combine info fro both groups in one column
+  mutate(dt_a_f_mat_intr = if_else(!is.na(dt_a_f_mat_intr_exp), dt_a_f_mat_intr_exp, dt_a_f_mat_intr_cont))
+
+# object accessed last
+a_last <- obj %>% 
+  # only research objects
+  filter(object_name %in% objects_research) %>%
+  # rename objects
+  mutate(object_name = ifelse(object_name == objects_research[1], comp_research[1],
+                              ifelse(object_name == objects_research[2], comp_research[2],
+                                     ifelse(object_name == objects_research[3], comp_research[3],
+                                            ifelse(object_name == objects_research[4], comp_research[4],
+                                                   ifelse(object_name == objects_research[5], comp_research[5], NA)))))) %>%
+  # reduce number of columns
+  select(user_id, object_name, dt_obj_access_last) %>%
+  # long to wide
+  pivot_wider(names_from = object_name, values_from = dt_obj_access_last, names_prefix = "dt_a_l_") %>%
+  # combine info fro both groups in one column
+  mutate(dt_a_l_mat_intr = if_else(!is.na(dt_a_l_mat_intr_exp), dt_a_l_mat_intr_exp, dt_a_l_mat_intr_cont))
+
+# merge data from all three time stamps
+dt <- merge(a_first, a_last, by = "user_id")
+dt <- merge(dt, c, by = "user_id")
+rm(a_first, a_last, c)
+
+# exclusion criteria
+# (1) The timestamp of when the object containing the to-be-learned material (Course 3, Module 1) 
+# was accessed predates the timestamp of when the object containing the prior knowledge assessment (Course 2, Module 1) was marked as completed; or 
+# (2) the object containing the to-be-learned material was accessed before the object containing the introductory material.
+
+dt$exclude_1 <- dt$dt_a_f_mat_learn < dt$dt_c_baseline
+dt$exclude_2 <- dt$dt_a_f_mat_learn < dt$dt_a_f_mat_intr
 
