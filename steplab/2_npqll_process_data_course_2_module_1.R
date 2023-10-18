@@ -15,6 +15,8 @@ dir_sql <- file.path(dir, "queries")
 
 # load in functions
 source(file.path(dir, "steplab", "extract_json.R"))
+library(tidyr)
+library(dplyr)
 
 #### --- get pretest data --- ####
 
@@ -188,3 +190,6 @@ df <- df[, c("user_id", "gender", "age", "experience", "dt_demogs_complete")]
 
 # MERGE
 df <- merge(df, pretest, by = "user_id")
+
+# save data
+write.csv(df, file = "steplab/processed_data_course_2_module_1.csv", row.names = F)
