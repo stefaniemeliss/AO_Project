@@ -418,3 +418,7 @@ df$raw_learnerxp <- NULL
 
 # MERGE
 df <- merge(posttest, df, by = "user_id")
+
+# save data
+write.csv(df, file = "steplab/processed_data_course_4_module_1.csv", row.names = F)
+
