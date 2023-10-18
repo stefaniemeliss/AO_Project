@@ -142,9 +142,9 @@ for (f in 1:length(files)) {
 umo$dt_event <- gsub("T", " ", umo$dt_event) # remove weird T
 umo$dt_event <- as.POSIXct(umo$dt_event) # convert to dt object
 
-# - combine um and umo to df - #
-df <- merge(um, umo, by = c("user_id", "mod_id"), all = T)
-df <- df[order(df$user_id, df$dt_event), ]
+# # - combine um and umo to df - #
+# df <- merge(um, umo, by = c("user_id", "mod_id"), all = T)
+# df <- df[order(df$user_id, df$dt_event), ]
 
 #### --- process data: define exclusion criteria --- ####
 
@@ -244,6 +244,35 @@ dt <- merge(a_first, a_last, by = "user_id")
 dt <- merge(dt, c, by = "user_id")
 rm(a_first, a_last, c)
 
+# - add module data from course 3 - #
+
+# define relevant modules #
+mods <- unique(um$mod_name[um$usercourse_name == "NPQLL Developing Reading"])
+
+# module marked as completed #
+tmp <- um %>% 
+  # only research objects
+  filter(mod_name %in% mods) %>%
+  # reduce number of columns
+  select(user_id, mod_code, dt_mod_complete) %>%
+  # long to wide
+  pivot_wider(names_from = mod_code, values_from = dt_mod_complete, names_prefix = "dt_c_c3_m") 
+
+# add to dt #
+dt <- merge(dt, tmp, by = "user_id")
+
+# module accessed first #
+tmp <- um %>% 
+  # only research objects
+  filter(mod_name %in% mods) %>%
+  # reduce number of columns
+  select(user_id, mod_code, dt_mod_access_first) %>%
+  # long to wide
+  pivot_wider(names_from = mod_code, values_from = dt_mod_access_first, names_prefix = "dt_a_f_c3_m") 
+
+# add to dt #
+dt <- merge(dt, tmp, by = "user_id")
+
 # - code exclusion criteria - #
 
 # exclude if #
@@ -254,4 +283,40 @@ dt$exclude_1 <- dt$dt_a_f_mat_learn < dt$dt_c_baseline
 # (2) timestamp learning material accessed first smaller timestamp introductory material accessed
 dt$exclude_2 <- dt$dt_a_f_mat_learn < dt$dt_a_f_mat_intr
 
+# - code sensitivity check criteria - #
 
+# sensitivity analyses will be conducted to determine whether the inclusion or exclusion of pre-defined participants impacts the results
+
+# (1) participants have fallen behind in their online studies 
+# Course 3 released before baseline completed
+
+dt_release_course3 <- 
+  min(um$dt_mod_release[um$mod_name == "Learning to read" & ! um$user_id %in% c("USm5lky0f_c4", "USq4kmbe8pr0")]) # NOTE: USER IDs belong to users that should be excluded
+dt$sens_excl_1 <- dt_release_course3 < dt$dt_c_baseline
+
+# (2) participants may complete modules within a course in non-sequential order
+# user user_modules data to  identify participants that *complete* modules in course in a different order
+# 3.1 = "Learning to read" - dt$dt_c_c3_m1
+# 3.2 = "Effective reading instruction" - dt$dt_c_c3_m2
+# 3.3 = "Leading reading" - dt$dt_c_c3_m3
+# if completed in sequential order, this should be reflected in the timestamps
+
+dt$sens_excl_2 <- dt$dt_c_c3_m1 < dt$dt_c_c3_m2 & dt$dt_c_c3_m2 < dt$dt_c_c3_m3
+
+# - code covariates - #
+
+# intervals between 
+# (1) introductory material and evidence summary 
+# (2) evidence summary and learning outcome assessment
+
+dt$int_1 <- difftime(dt$dt_c_mat_learn, dt$dt_c_baseline, units = "days")
+dt$int_2 <- difftime(dt$dt_c_post, dt$dt_c_mat_learn, units = "days")
+
+# (3) intro and learning material
+
+dt$int_3 <- difftime(dt$dt_a_f_mat_learn, dt$dt_a_f_mat_intr)
+
+# engagement duration
+dt$dur_baseline <- difftime(dt$dt_c_baseline, dt$dt_a_f_baseline, units = "min")
+dt$dur_mat_intro <- difftime(dt$dt_c_mat_intr, dt$dt_a_f_mat_intr, units = "secs")
+dt$dur_mat_learn <- difftime(dt$dt_c_mat_learn, dt$dt_a_f_mat_learn, units = "secs")
