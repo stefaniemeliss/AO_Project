@@ -6,23 +6,64 @@ SELECT
     *
 FROM user_modules um
 WHERE
-    user_id IN 
-        (SELECT -- create list of consenting ppt for LMS
-            user_id
-        FROM
-            user_mod_reflections AS umr
-        WHERE
-            mod_course_name ILIKE '%npqll%orient%'
-            AND response -> 0 -> 'response' -> 'choices' -> 0 ->> 'selected' = 'true'
-            AND mod_course_name NOT ILIKE '%test%'
-            AND object_name ILIKE '%research%'
-            AND "completedDt" < '2023-03-17 00:07:00.000'
-        )
-    AND usercourse_name ILIKE '%npqll%enabling%cond%' -- NPQLL DATA : course 1
-    OR usercourse_name ILIKE '%npqll%develop%language%' -- NPQLL DATA : course 2
-    OR usercourse_name ILIKE '%npqll%develop%read%' -- NPQLL DATA : course 3
+    usercourse_name ILIKE '%npqll%enabling%cond%' -- NPQLL DATA : course 1
+        AND user_id IN 
+            (SELECT -- create list of consenting ppt for LMS
+                user_id
+            FROM
+                user_mod_reflections AS umr
+            WHERE
+                mod_course_name ILIKE '%npqll%orient%'
+                AND response -> 0 -> 'response' -> 'choices' -> 0 ->> 'selected' = 'true'
+                AND mod_course_name NOT ILIKE '%test%'
+                AND object_name ILIKE '%research%'
+                AND "completedDt" < '2023-03-17 00:07:00.000'
+            )
+        AND "unlockDt" > '2023-02-01 00:00:00.000' -- ONLY present cohort
+    OR
+    usercourse_name ILIKE '%npqll%develop%language%' -- NPQLL DATA : course 2
+            AND user_id IN 
+            (SELECT -- create list of consenting ppt for LMS
+                user_id
+            FROM
+                user_mod_reflections AS umr
+            WHERE
+                mod_course_name ILIKE '%npqll%orient%'
+                AND response -> 0 -> 'response' -> 'choices' -> 0 ->> 'selected' = 'true'
+                AND mod_course_name NOT ILIKE '%test%'
+                AND object_name ILIKE '%research%'
+                AND "completedDt" < '2023-03-17 00:07:00.000'
+            )
+        AND "unlockDt" > '2023-02-01 00:00:00.000' -- ONLY present cohort
+    OR 
+    usercourse_name ILIKE '%npqll%develop%read%' -- NPQLL DATA : course 3
+        AND user_id IN 
+            (SELECT -- create list of consenting ppt for LMS
+                user_id
+            FROM
+                user_mod_reflections AS umr
+            WHERE
+                mod_course_name ILIKE '%npqll%orient%'
+                AND response -> 0 -> 'response' -> 'choices' -> 0 ->> 'selected' = 'true'
+                AND mod_course_name NOT ILIKE '%test%'
+                AND object_name ILIKE '%research%'
+                AND "completedDt" < '2023-03-17 00:07:00.000'
+            )
+        AND "unlockDt" > '2023-02-01 00:00:00.000' -- ONLY present cohort
     OR usercourse_name ILIKE '%npqll%develop%writ%' -- NPQLL DATA : course 4
-    AND "unlockDt" > '2023-02-01 00:00:00.000' -- ONLY present cohort
+        AND user_id IN 
+            (SELECT -- create list of consenting ppt for LMS
+                user_id
+            FROM
+                user_mod_reflections AS umr
+            WHERE
+                mod_course_name ILIKE '%npqll%orient%'
+                AND response -> 0 -> 'response' -> 'choices' -> 0 ->> 'selected' = 'true'
+                AND mod_course_name NOT ILIKE '%test%'
+                AND object_name ILIKE '%research%'
+                AND "completedDt" < '2023-03-17 00:07:00.000'
+            )
+        AND "unlockDt" > '2023-02-01 00:00:00.000' -- ONLY present cohort
 ORDER BY user_display_name, "unlockDt", mod_code
 
 -- cleaned data    
@@ -103,5 +144,19 @@ WHERE
                 AND "completedDt" < '2023-03-17 00:07:00.000'
             )
         AND "unlockDt" > '2023-02-01 00:00:00.000' -- ONLY present cohort
+ORDER BY user_display_name, "unlockDt", mod_code
+
+
+
+
+-- DEBUG WEIRD RELEASE DATES FOR TWO PPT
+-- cleaned data    
+SELECT
+*
+FROM user_modules um
+WHERE
+    user_id IN ('USm5lky0f_c4', 'USq4kmbe8pr0')
+    --AND usercourse_name ILIKE '%npqll%'
+    AND usercourse_name NOT ILIKE '%clinic%'
 ORDER BY user_display_name, "unlockDt", mod_code
 
