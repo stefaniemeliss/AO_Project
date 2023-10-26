@@ -1,0 +1,34 @@
+---
+title: "NPQLL - Analysis"
+author: "Stefanie Meliss"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# empty work space
+rm(list = ls())
+
+# define directory
+dir_step <- getwd()
+
+# load in functions
+source(file.path(dir_step, "extract_json.R"))
+library(tidyr)
+library(dplyr)
+```
+
+
+
+```{r, include=FALSE}
+# --- Read in data --- #
+
+# read in data
+pre <- read.csv(file = file.path(dir_step, "processed_data_course_2_module_1.csv"))
+post <- read.csv(file = file.path(dir_step, "processed_data_course_4_module_1.csv"))
+dt <- read.csv(file = file.path(dir_step, "processed_data_timestamps.csv"))
+
+# merge
+df <- merge(pre, post, by = "user_id", all = T)
+df <- merge(df, dt, by = "user_id", all = T)
+```
