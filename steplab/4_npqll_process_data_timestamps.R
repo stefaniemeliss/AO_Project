@@ -46,8 +46,6 @@ dir_export <- file.path(dir_sql, "usermodobjects_export")
 # load in functions
 library(dplyr)
 library(arrow)
-
-# source(file.path(dir, "steplab", "extract_json.R"))
 library(tidyr)
 
 #### --- load data --- ####
@@ -320,3 +318,6 @@ dt$int_3 <- difftime(dt$dt_a_f_mat_learn, dt$dt_a_f_mat_intr)
 dt$dur_baseline <- difftime(dt$dt_c_baseline, dt$dt_a_f_baseline, units = "min")
 dt$dur_mat_intro <- difftime(dt$dt_c_mat_intr, dt$dt_a_f_mat_intr, units = "secs")
 dt$dur_mat_learn <- difftime(dt$dt_c_mat_learn, dt$dt_a_f_mat_learn, units = "secs")
+
+# save data
+write.csv(dt, file = "steplab/processed_data_timestamps.csv", row.names = F)

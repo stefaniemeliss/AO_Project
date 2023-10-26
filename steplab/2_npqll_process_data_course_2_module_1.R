@@ -14,7 +14,7 @@ dir <- getwd()
 dir_sql <- file.path(dir, "queries")
 
 # load in functions
-source(file.path(dir, "steplab", "extract_json.R"))
+devtools::source_url("https://github.com/stefaniemeliss/AO_Project/blob/main/steplab/extract_json.R?raw=TRUE")
 library(tidyr)
 library(dplyr)
 
