@@ -99,3 +99,19 @@ plot_raincloud <- function(data = df, xvar = x, yvar = y,
   
   print(plot)
 }
+
+
+table_desc <- function(data = df, grp = "group_var", var = "dep_var"){
+  
+  out <- rbind(
+    psych::describe(data[, var]), # get descriptives whole sample
+    do.call("rbind",psych::describeBy(data[, var], group = data[, grp])) # get descriptives per group
+  )
+  # edit output
+  out$vars <- NULL
+  rownames(out)[1] <- "all"
+  # print output
+  print(knitr::kable(out, caption = "Descriptives for whole sample and within each group"))
+  cat('\n\n<!-- -->\n\n')
+  
+}
