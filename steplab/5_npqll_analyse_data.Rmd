@@ -32,3 +32,38 @@ dt <- read.csv(file = file.path(dir_step, "processed_data_timestamps.csv"))
 df <- merge(pre, post, by = "user_id", all = T)
 df <- merge(df, dt, by = "user_id", all = T)
 ```
+
+
+### Manipulation check  
+  
+To determine whether any participants in that were exposed to the AO (non-AO) were indeed part of the experimental (control) group, we compared the user ids of participants randomly *assigned* to each group against the user ids of participants *exposed* to the respective introductory material.  
+  
+
+```{r, echo=FALSE, results='asis'}
+# --- Manipulation check --- #
+
+
+# read in file that was past to LMS to determine grouptag
+rand <- read.csv(file = file.path(dir_step, "npqll_random_group_assignment.csv"))
+
+# extract user_id as vector for each group
+exp <- rand$user_id[rand$group == "AO"]
+con <- rand$user_id[rand$group == "non-AO"]
+
+# get user_ids of ppt that have accessed AO or non-AO
+AO <- dt$user_id[!is.na(dt$dt_a_f_mat_intr_exp)]
+nAO <- dt$user_id[!is.na(dt$dt_a_f_mat_intr_cont)]
+
+# check whether any user has accessed AO (non-AO) that was NOT part of the experimental (control) group
+if (sum(! AO %in% exp) == 0) {
+  cat("No participant has accessed the AO that was not part of the experimental group. ")
+} else {("Some participants that were not part of the experimental group were exposed to the AO.")}
+
+
+if (sum(! nAO %in% con) == 0) {
+  cat("No participant has accessed the non-AO that was not part of the control group. ")
+} else {("Some participants that were not part of the control group were exposed to the non-AO.")}
+
+cat("\n")
+```
+
