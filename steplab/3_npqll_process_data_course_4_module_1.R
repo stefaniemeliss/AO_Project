@@ -195,10 +195,10 @@ for (i in 1:nrow(qs_text)) {
 }
 
 # compute total score for free text items
-text$i_text <- rowSums(text[, grep("_score", names(text))])
+text$score_text <- rowSums(text[, grep("_score", names(text))])
 
 # remove all unnecessary columns
-tmp <- text[, c("user_id", "i_text")]
+tmp <- text[, c("user_id", "score_text")]
 
 # merge df and mc
 df <- merge(tmp, df, by = "user_id")
@@ -272,10 +272,10 @@ for (i in 1:nrow(qs_mc)) {
 }
 
 # compute total sum score
-mc$i_mc <- rowSums(mc[, grep("_score", names(mc))])
+mc$score_mc <- rowSums(mc[, grep("_score", names(mc))])
 
 # remove all unnecessary columns
-tmp <- mc[, c("user_id", "i_mc")]
+tmp <- mc[, c("user_id", "score_mc")]
 
 # merge df and mc
 posttest <- merge(tmp, df, by = "user_id")
