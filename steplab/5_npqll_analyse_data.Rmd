@@ -12,10 +12,14 @@ rm(list = ls())
 # define directory
 dir_step <- getwd()
 
-# load in functions
-source(file.path(dir_step, "extract_json.R"))
+# load libraries
 library(tidyr)
 library(dplyr)
+library(ggplot2)
+
+# load in functions
+devtools::source_url("https://github.com/stefaniemeliss/AO_Project/blob/main/pilots/functions.R?raw=TRUE")
+
 ```
 
 
@@ -23,28 +27,28 @@ library(dplyr)
 ```{r, include=FALSE}
 # --- Read in data --- #
 
+# read in file that was past to LMS to determine grouptag
+rand <- read.csv(file = file.path(dir_step, "npqll_random_group_assignment.csv"))
+
 # read in data
 pre <- read.csv(file = file.path(dir_step, "processed_data_course_2_module_1.csv"))
 post <- read.csv(file = file.path(dir_step, "processed_data_course_4_module_1.csv"))
 dt <- read.csv(file = file.path(dir_step, "processed_data_timestamps.csv"))
 
 # merge
-df <- merge(pre, post, by = "user_id", all = T)
+df <- merge(rand, pre, by = "user_id", all = T)
+df <- merge(df, post, by = "user_id", all = T)
 df <- merge(df, dt, by = "user_id", all = T)
 ```
 
 
 ### Manipulation check  
-  
+
 To determine whether any participants in that were exposed to the AO (non-AO) were indeed part of the experimental (control) group, we compared the user ids of participants randomly *assigned* to each group against the user ids of participants *exposed* to the respective introductory material.  
-  
+
 
 ```{r, echo=FALSE, results='asis'}
 # --- Manipulation check --- #
-
-
-# read in file that was past to LMS to determine grouptag
-rand <- read.csv(file = file.path(dir_step, "npqll_random_group_assignment.csv"))
 
 # extract user_id as vector for each group
 exp <- rand$user_id[rand$group == "AO"]
@@ -65,5 +69,29 @@ if (sum(! nAO %in% con) == 0) {
 } else {("Some participants that were not part of the control group were exposed to the non-AO.")}
 
 cat("\n")
+```
+
+### Descriptive characteristics
+
+##### Prior knowledge test
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# define vars
+var <- "score_pretest"
+grp <- "group"
+
+# remove all ppt without pretest results
+tmp <- df[!is.na(df[, var]), ]
+
+# generate and print descriptive tables to markdown
+table_desc(data = tmp, group_var = grp, dep_var = var)    
+
+# create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
+plt <- plot_raincloud(data = tmp, xvar = grp, yvar = var, 
+                        xlower = 1, xupper = 2,
+                        ylower = 1, yupper = 10, ybreaks = 1,
+                        #title = "Descriptive visualisation of rating in each group",
+                        ylab = "Total number of correct items")
+
 ```
 
