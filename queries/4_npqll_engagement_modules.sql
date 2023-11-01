@@ -20,6 +20,7 @@ WHERE
                 AND "completedDt" < '2023-03-17 00:07:00.000'
             )
         AND "unlockDt" > '2023-02-01 00:00:00.000' -- ONLY present cohort
+        AND accessed->>'last' < '2023-11-01 00:00:00.000'
     OR
     usercourse_name ILIKE '%npqll%develop%language%' -- NPQLL DATA : course 2
             AND user_id IN 
@@ -35,6 +36,7 @@ WHERE
                 AND "completedDt" < '2023-03-17 00:07:00.000'
             )
         AND "unlockDt" > '2023-02-01 00:00:00.000' -- ONLY present cohort
+        AND accessed->>'last' < '2023-11-01 00:00:00.000'
     OR 
     usercourse_name ILIKE '%npqll%develop%read%' -- NPQLL DATA : course 3
         AND user_id IN 
@@ -50,6 +52,7 @@ WHERE
                 AND "completedDt" < '2023-03-17 00:07:00.000'
             )
         AND "unlockDt" > '2023-02-01 00:00:00.000' -- ONLY present cohort
+        AND accessed->>'last' < '2023-11-01 00:00:00.000'
     OR usercourse_name ILIKE '%npqll%develop%writ%' -- NPQLL DATA : course 4
         AND user_id IN 
             (SELECT -- create list of consenting ppt for LMS
@@ -64,6 +67,7 @@ WHERE
                 AND "completedDt" < '2023-03-17 00:07:00.000'
             )
         AND "unlockDt" > '2023-02-01 00:00:00.000' -- ONLY present cohort
+        AND accessed->>'last' < '2023-11-01 00:00:00.000'
 ORDER BY user_display_name, "unlockDt", mod_code
 
 -- cleaned data    
@@ -100,6 +104,7 @@ WHERE
                 AND "completedDt" < '2023-03-17 00:07:00.000'
             )
         AND "unlockDt" > '2023-02-01 00:00:00.000' -- ONLY present cohort
+        AND accessed->>'last' < '2023-11-01 00:00:00.000'
     OR
     usercourse_name ILIKE '%npqll%develop%language%' -- NPQLL DATA : course 2
             AND user_id IN 
@@ -115,6 +120,7 @@ WHERE
                 AND "completedDt" < '2023-03-17 00:07:00.000'
             )
         AND "unlockDt" > '2023-02-01 00:00:00.000' -- ONLY present cohort
+        AND accessed->>'last' < '2023-11-01 00:00:00.000'
     OR 
     usercourse_name ILIKE '%npqll%develop%read%' -- NPQLL DATA : course 3
         AND user_id IN 
@@ -130,6 +136,7 @@ WHERE
                 AND "completedDt" < '2023-03-17 00:07:00.000'
             )
         AND "unlockDt" > '2023-02-01 00:00:00.000' -- ONLY present cohort
+        AND accessed->>'last' < '2023-11-01 00:00:00.000'
     OR usercourse_name ILIKE '%npqll%develop%writ%' -- NPQLL DATA : course 4
         AND user_id IN 
             (SELECT -- create list of consenting ppt for LMS
@@ -144,6 +151,7 @@ WHERE
                 AND "completedDt" < '2023-03-17 00:07:00.000'
             )
         AND "unlockDt" > '2023-02-01 00:00:00.000' -- ONLY present cohort
+        AND accessed->>'last' < '2023-11-01 00:00:00.000'
 ORDER BY user_display_name, "unlockDt", mod_code
 
 

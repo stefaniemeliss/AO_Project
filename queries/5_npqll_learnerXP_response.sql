@@ -9,7 +9,8 @@ FROM
 WHERE
     mod_course_name ILIKE '%npqll%develop%writing'
     AND mod_course_name NOT ILIKE '%test%'
-    AND object_name ILIKE '%learner%experience%' 
+    AND object_name ILIKE '%learner%experience%'
+    AND "completedDt" < '2023-11-01 00:00:00.000'
 
 -- cleaned learner experience data
 SELECT
@@ -23,6 +24,7 @@ WHERE
     mod_course_name ILIKE '%npqll%develop%writing'
     AND mod_course_name NOT ILIKE '%test%'
     AND object_name ILIKE '%learner%experience%'
+    AND "completedDt" < '2023-11-01 00:00:00.000'
     
 
 

@@ -10,6 +10,7 @@ WHERE
     mod_course_name ILIKE '%npqll%develop%language'
     AND mod_course_name NOT ILIKE '%test%'
     AND object_name ILIKE '%pre%test%' 
+    AND "completedDt" < '2023-11-01 00:00:00.000'
 
 -- cleaned pre-test data
 SELECT
@@ -23,6 +24,7 @@ WHERE
     mod_course_name ILIKE '%npqll%develop%language'
     AND mod_course_name NOT ILIKE '%test%'
     AND object_name ILIKE '%pre%test%'
+    AND "completedDt" < '2023-11-01 00:00:00.000'
     
 
 
