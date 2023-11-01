@@ -155,19 +155,19 @@ qs_text$solution <- c("prosody", #i1
 # define acceptable solutions 
 # this will be used for a grepl comparison for scoring
 # check again once data collection is complete
-accepted <- list(c("prosody"), #i1
+accepted <- list(c("prosody", "porosdy"), #i1
                  c("5", "five"), #i3
                  c("morpheme"), #i6
                  c("suffix"), #i7
-                 c("comprehension strategies"), #i8
-                 c("language comprehension"), #i9
-                 c("literacy"), # i10
+                 c("comprehension", "strateg"), #i8
+                 c("comprehension"), #i9
+                 c("disciplinary", "disciplanary", "specific"), # i10
                  c("6", "six"), #i11
-                 c("inference", "inferencing", "reasoning"), #i13
+                 c("infer", "reasoning", "infrence"), #i13
                  c("decoding", "word recognition", "fluency"), #i14
-                 c("systematic"), #i15
+                 c("system"), #i15
                  c("phonemes"), #i17
-                 c("orthography"), #i18
+                 c("orthagraph"), #i18
                  c("fluency"), #i21
                  c("3", "three") #i22
 )
@@ -179,12 +179,26 @@ for (i in 1:nrow(qs_text)) {
   cat("\n*CORRECT:*", qs_text$solution[i], "\n")
   
   # show all unique responses
-  cat("\n\n*GIVEN ANSWERS:*", unique(tolower(text[,paste0("response_", i)])), sep = " -/- ")
+  given <- unique(tolower(text[,paste0("response_", i)]))
+  cat("\n\n*GIVEN ANSWERS:*", given, sep = " -/- ")
   
   # show accepted
   cat("\n\n*ACCEPTED STEMS:*", accepted[[i]], sep = " -/- ")
   
   cat("\n\n\n\n")
+  
+  
+  # put in table for sharing
+  tmp <- data.frame(given)
+  tmp$question <- paste(i, qs_text$question_text[i])
+  tmp$solution <- qs_text$solution[i]
+  tmp$score <- ifelse(grepl(paste(accepted[[i]], collapse = "|"), tolower(tmp[, "given"])), 1, 0)
+
+  if (i == 1){
+    out <- tmp
+  } else {
+    out <- rbind(out, tmp)
+  }
   
   # ONCE DATA COLLECTION IS COMPLETE #
   # award points
@@ -193,6 +207,10 @@ for (i in 1:nrow(qs_text)) {
   text[,paste0("question_", i, "_score")] <- ifelse(grepl(paste(accepted[[i]], collapse = "|"), tolower(text[,paste0("response_", i)])), 1, 0)
   
 }
+
+# change out
+out <- out[, c("question", "solution", "given", "score")]
+xlsx::write.xlsx(out, file = "steplab/posttest_freetext_answers_scoring.xlsx", row.names = F, sheetName = "for CS to check")
 
 # compute total score for free text items
 text$score_text <- rowSums(text[, grep("_score", names(text))])
