@@ -155,19 +155,19 @@ qs_text$solution <- c("prosody", #i1
 # define acceptable solutions 
 # this will be used for a grepl comparison for scoring
 # check again once data collection is complete
-accepted <- list(c("prosody", "porosdy"), #i1
+accepted <- list(c("prosody", "porosdy", "prosidy", "parosody"), #i1
                  c("5", "five"), #i3
                  c("morpheme"), #i6
                  c("suffix"), #i7
-                 c("comprehension", "strateg"), #i8
-                 c("comprehension"), #i9
+                 c("strateg", "reading", "process"), #i8
+                 c("comprehension", "constructing meaning", "building meaning from words"), #i9
                  c("disciplinary", "disciplanary", "specific"), # i10
                  c("6", "six"), #i11
-                 c("infer", "reasoning", "infrence"), #i13
-                 c("decoding", "word recognition", "fluency"), #i14
+                 c("infer", "reasoning", "infrence", "deduction"), #i13
+                 c("decoding", "word recognition", "fluency", "phonics", "phonetic"), #i14
                  c("system"), #i15
-                 c("phonemes"), #i17
-                 c("orthagraph"), #i18
+                 c("phoneme", "phomeme"), #i17
+                 c("orthagrap", "orthograp", "orthopgraphy"), #i18
                  c("fluency"), #i21
                  c("3", "three") #i22
 )
@@ -297,6 +297,9 @@ tmp <- mc[, c("user_id", "score_mc")]
 
 # merge df and mc
 posttest <- merge(tmp, df, by = "user_id")
+
+# compute sum score
+posttest$score_posttest <- posttest$score_mc + posttest$score_text
 
 # delete raw data
 posttest$raw_posttest <- NULL
@@ -428,15 +431,17 @@ for (i in 1:length(question)) {
 xp <- xp[, grep("user_id|_score|_response", names(xp))]
 
 # merge df and sc
-df <- merge(df, xp, by = "user_id")
+df <- merge(df, xp, by = "user_id", all = T)
 
 # delete raw data
 df$raw_learnerxp <- NULL
 
 
 # MERGE
-df <- merge(posttest, df, by = "user_id")
+df <- merge(posttest, df, by = "user_id", all = T)
 
 # save data
 write.csv(df, file = "steplab/processed_data_course_4_module_1.csv", row.names = F)
+write.csv(text, file = "steplab/processed_data_course_4_module_1_text.csv", row.names = F) # to be able to check the answers
+
 
