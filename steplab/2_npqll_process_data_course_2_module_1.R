@@ -191,5 +191,9 @@ df <- df[, c("user_id", "gender", "age", "experience", "dt_demogs_complete")]
 # MERGE
 df <- merge(df, pretest, by = "user_id")
 
+# remove data from staff
+df <- subset(df, user_id != "US6x_3lb9169") # BK
+df <- subset(df, user_id != "USl5714-8b-z") # KM
+
 # save data
 write.csv(df, file = "steplab/processed_data_course_2_module_1.csv", row.names = F)
