@@ -52,7 +52,8 @@ plot_raincloud <- function(data = df, xvar = x, yvar = y,
                            yintercept = NULL,
                            title = "",
                            ylab = "",
-                           xlab = ""){
+                           xlab = "",
+                           note = ""){
   
   # create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
   plot <- 
@@ -70,7 +71,9 @@ plot_raincloud <- function(data = df, xvar = x, yvar = y,
     
     # determine titles
     ggtitle(paste0(title)) + xlab(paste0(xlab)) + ylab(paste0(ylab)) +
-    theme 
+    labs(caption = note) +
+    theme +
+    theme(plot.caption = element_text(hjust=0))
   #+ theme(axis.title.x = element_blank(), axis.text.x = element_blank()) 
   
   # determine coord system + scales
