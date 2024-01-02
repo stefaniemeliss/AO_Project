@@ -148,14 +148,13 @@ for (i in 1:nrow(qs_sc)) {
 sc$score_pretest <- rowSums(sc[, grep("_score", names(sc))])
 
 # remove all unnecessary columns
-sc <- sc[, c("user_id", "score_pretest")]
+sc <- sc[, grep("user_id|score", names(sc))]
 
 # merge df and sc
 pretest <- merge(sc, df, by = "user_id")
 
 # delete raw data
 pretest$raw_pretest <- NULL
-
 
 #### --- get demogs data --- ####
 
