@@ -91,6 +91,44 @@ id_mod <- unique(um$mod_id)
 
 # - usermodobjects (User module objects) data - #
 
+# two months were manually exported by myself (rest provided by Youssoup)
+# below data for September and October is processed
+months <- c("09", "10")
+
+for (m in 1:length(months)) {
+  
+  # create list of files in export folder #
+  files <- list.files(path = dir_export, pattern = paste0("2023-", months[m]))
+  
+  
+  # loop through each file in folder #
+  for (f in 1:length(files)) {
+    
+    # load data 
+    tmp <- jsonlite::fromJSON(file.path(dir_export, files[f]), flatten = T)
+    
+    # save data: combine across months
+    if (f == 1) {
+      umo <- tmp
+    } else {
+      umo <- rbind(umo, tmp)
+    }
+    
+    # handle memory demands
+    rm(tmp)
+    gc()
+  }
+  
+  # edit row names
+  names(umo) <- gsub(".", "_", names(umo), fixed = T)
+  
+  # save as parquet
+  write_parquet(umo, sink = file.path(dir_export, paste0("usermodobjects_2023_", months[m], ".parquet")))
+  
+  
+}
+
+
 # the usermodobjects (User module objects) data is not recorded reliably in Aircury
 # data was exported by Steplab manually and made available in tabular form in .parquet format for each month separately
 # data captures engagements with objects in each module
