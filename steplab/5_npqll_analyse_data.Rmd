@@ -68,7 +68,7 @@ cat("Data collection for the project closed on October 31st 2023 at 23:59. Up to
 cat("There is complete data (i.e., pre- and post-test measures) from N = ", sum(post$user_id %in% pre$user_id), "participants. ")
 
 
-cat("Upon careful inspection of the learning outcome assessment data, two participants were identified who provided non-responses in at least 14 out of 15 free-text items. Data from these two participants were excluded from the analyses. As such, the sample analysed here consisted of N = ", sum(!is.na(all$score_posttest)), "participants.\n\n")
+cat("Upon careful inspection of the learning outcome assessment data, two participants were identified who provided non-responses in at least 14 out of 15 free-text items. Data from these two participants were excluded from the analyses. \n\n")
 
 ```
 
@@ -94,14 +94,40 @@ nAO <- dt$user_id[!is.na(dt$dt_a_f_mat_intr_cont)]
 # check whether any user has accessed AO (non-AO) that was NOT part of the experimental (control) group
 if (sum(! AO %in% exp) == 0) {
   cat("No participant has accessed the AO that was not part of the experimental group. ")
-} else {("Some participants that were not part of the experimental group were exposed to the AO.")}
+} else { cat("Some participants that were not part of the experimental group were exposed to the AO.")}
 
 
 if (sum(! nAO %in% con) == 0) {
   cat("No participant has accessed the non-AO that was not part of the control group. ")
-} else {("Some participants that were not part of the control group were exposed to the non-AO.")}
+} else { cat("Some participants that were not part of the control group were exposed to the non-AO.")}
 
 cat("\n")
+
+# check how many participants in the experimental (control) group did not access the AO (non-AO)
+if (sum(is.na(df$dt_a_f_mat_intr_exp[df$group == "AO"])) == 0) {
+  cat("All participant in the experimental group have accessed the AO. ")
+} else { cat("Some participants (N = ", sum(is.na(df$dt_a_f_mat_intr_exp[df$group == "AO"])), ") in the experimental group have not accessed the AO. ", sep = "")}
+
+if (sum(is.na(df$dt_a_f_mat_intr_cont[df$group == "non-AO"])) == 0) {
+  cat("All participant in the experimental group have accessed the AO. ")
+} else { cat("Some participants (N = ", sum(is.na(df$dt_a_f_mat_intr_cont[df$group == "non-AO"])), ") in the control group have not accessed the non-AO. ", sep = "")}
+
+cat("\n")
+
+# code variable that captures whether introductory material was accessed or not
+df$access_mat_intro <- ifelse(df$group == "AO" & !is.na(df$dt_a_f_mat_intr_exp), TRUE,
+                              ifelse(df$group == "non-AO" & !is.na(df$dt_a_f_mat_intr_cont), TRUE,
+                                     FALSE))
+
+# remove participants that have not accessed the assigned introductory materials
+if (sum(is.na(df$dt_a_f_mat_intr_exp[df$group == "AO"])) != 0 | sum(is.na(df$dt_a_f_mat_intr_cont[df$group == "non-AO"])) != 0) {
+  df <- df[df$access_mat_intro, ]
+
+  cat("The respective participants were removed from further data analysis. As such, the sample analysed here consisted of N =", nrow(df), "participants.")
+} 
+
+cat("\n")
+
 ```
 
 ### Descriptive characteristics
