@@ -187,6 +187,11 @@ df$experience <- as.numeric(df$experience)
 df <- df[, c("user_id", "gender", "age", "experience", "dt_demogs_complete")]
 
 
+# one participant indicated to be 3 years old
+# replace with NA
+df$age <- ifelse(df$age == 3, NA, df$age)
+
+
 # MERGE
 df <- merge(df, pretest, by = "user_id")
 
