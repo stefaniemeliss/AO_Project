@@ -12,7 +12,7 @@ library(dplyr)
 
 # read in ppt list
 dir <- getwd()
-ppts <- read.csv(file = file.path(dir, "queries", "npqll_consent_20230317.csv"))
+ppts <- read.csv(file = file.path(dir, "queries", "1_npqll_consent_response_20230317.csv"))
 
 # get all consenting IDs
 ppts <- ppts[ppts$consent_given == "TRUE", ]
