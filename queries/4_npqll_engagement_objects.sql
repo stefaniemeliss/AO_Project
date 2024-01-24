@@ -81,6 +81,7 @@ ORDER BY um.user_display_name, umo."eventDt" ASC
 
 
 -- user module object data from NPQLL Feb 2023 cohort 
+-- when filtering by date: data *appears* complete as all empty fields are removed
 SELECT 
     umo.usermod_id, -- same as um.id, UNIQUE MODULE id
     mod_name, -- MODULE name
@@ -122,6 +123,7 @@ ORDER BY um.user_display_name, umo."eventDt" ASC
 
 
 -- NPQLL Course 3 Module 1 study modules + objects 
+-- AO manipulation
 SELECT 
     umo.usermod_id, -- same as um.id, UNIQUE MODULE id
     mod_name, -- MODULE name
