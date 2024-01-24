@@ -280,6 +280,21 @@ dt <- merge(a_first, a_last, by = "user_id")
 dt <- merge(dt, c, by = "user_id")
 rm(a_first, a_last, c)
 
+# add timestamps from when the prior knowledge and learning outcome assessment
+
+pre <- read.csv(file = "steplab/processed_data_course_2_module_1.csv")
+pre <- pre[, c("user_id", "dt_pretest_complete")]
+names(pre) <- c("user_id", "dt_c_baseline_umr") # umr = user_mod_reflection
+post <- read.csv(file = "steplab/processed_data_course_4_module_1.csv")
+post <- post[, c("user_id", "dt_posttest_complete")]
+names(post) <- c("user_id", "dt_c_post_umr") # umr = user_mod_reflection
+
+dt <- merge(dt, pre)
+dt <- merge(dt, post)
+
+rm(pre, post)
+
+
 # - add module data from course 3 - #
 
 # define relevant modules #
@@ -314,7 +329,7 @@ dt <- merge(dt, tmp, by = "user_id")
 # exclude if #
 
 # (1) timestamp learning material accessed first smaller timestamp baseline test completed
-dt$exclude_1 <- dt$dt_a_f_mat_learn < dt$dt_c_baseline
+dt$exclude_1 <- dt$dt_a_f_mat_learn < dt$dt_c_baseline_umr
 
 # (2) timestamp learning material accessed first smaller timestamp introductory material accessed
 dt$exclude_2 <- dt$dt_a_f_mat_learn < dt$dt_a_f_mat_intr
@@ -328,7 +343,7 @@ dt$exclude_2 <- dt$dt_a_f_mat_learn < dt$dt_a_f_mat_intr
 
 dt_release_course3 <- 
   min(um$dt_mod_release[um$mod_name == "Learning to read" & ! um$user_id %in% c("USm5lky0f_c4", "USq4kmbe8pr0")]) # NOTE: USER IDs belong to users that should be excluded
-dt$sens_excl_1 <- dt_release_course3 < dt$dt_c_baseline
+dt$sens_excl_1 <- dt_release_course3 < dt$dt_c_baseline_umr
 
 # (2) participants may complete modules within a course in non-sequential order
 # user user_modules data to  identify participants that *complete* modules in course in a different order
@@ -337,7 +352,7 @@ dt$sens_excl_1 <- dt_release_course3 < dt$dt_c_baseline
 # 3.3 = "Leading reading" - dt$dt_c_c3_m3
 # if completed in sequential order, this should be reflected in the timestamps
 
-dt$sens_excl_2 <- dt$dt_c_c3_m1 < dt$dt_c_c3_m2 & dt$dt_c_c3_m2 < dt$dt_c_c3_m3
+dt$sens_excl_2 <- !(dt$dt_c_c3_m1 < dt$dt_c_c3_m2 & dt$dt_c_c3_m2 < dt$dt_c_c3_m3)
 
 # - code covariates - #
 
@@ -345,12 +360,12 @@ dt$sens_excl_2 <- dt$dt_c_c3_m1 < dt$dt_c_c3_m2 & dt$dt_c_c3_m2 < dt$dt_c_c3_m3
 # (1) introductory material and evidence summary 
 # (2) evidence summary and learning outcome assessment
 
-dt$int_1 <- difftime(dt$dt_c_mat_learn, dt$dt_c_baseline, units = "days")
-dt$int_2 <- difftime(dt$dt_c_post, dt$dt_c_mat_learn, units = "days")
+dt$int_1 <- difftime(dt$dt_a_f_mat_learn, dt$dt_a_f_mat_intr)
+dt$int_2 <- difftime(dt$dt_c_post_umr, dt$dt_a_f_mat_learn, units = "days")
 
-# (3) intro and learning material
+# (3) prior knowledge assessment and learning material
 
-dt$int_3 <- difftime(dt$dt_a_f_mat_learn, dt$dt_a_f_mat_intr)
+dt$int_3 <- difftime(dt$dt_a_f_mat_learn, dt$dt_c_baseline_umr, units = "days")
 
 # engagement duration
 dt$dur_baseline <- difftime(dt$dt_c_baseline, dt$dt_a_f_baseline, units = "min")
