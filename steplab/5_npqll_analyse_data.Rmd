@@ -774,6 +774,70 @@ names(out) <- c("", "SS", "df", "F value", "p value", "eta.sq.part")
 
 ```
 
+##### Pre-registered exclusion only
+To determine whether the decision to exclude observations beyond what was pre-registered influenced the results, the ANCOVA analysis were repeated using data from N = 145 participants who were not excluded based on the pre-regisetered criteria.
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+
+# remove based on pre-registered exclusion criteria
+df_prereg <- df_noexcl[!df_noexcl$exclude_1,] # 1 excluded
+df_prereg <- df_prereg[!df_prereg$exclude_2,] # 1 excluded
+
+# remove outlier posttest
+df_prereg <- df_prereg[!is_outlier_iqr(df_prereg$score_posttest), ] # 4 ppt excluded
+
+# standardise scores
+df_prereg$score_pretest_c <- scale(df_prereg$score_pretest)
+df_prereg$score_posttest_c <- scale(df_prereg$score_posttest)
+
+# determine the ANCOVA model
+m2a <- lm(score_posttest_c ~ group_d + score_pretest_c, data = df_prereg)
+
+# generate Ancova output
+tmp <- car::Anova(m2a, type = "III")
+
+# extract coefficients - group effect
+f_val <- tmp$`F value`[2]
+p_val <- tmp$`Pr(>F)`[2]
+numdf <- tmp$Df[2]
+dendf <- tmp$Df[nrow(tmp)]
+
+# add to markdown - group effect
+if (p_val > 0.05) {
+  cat("After adjustment for prior knowledge assessment score, there was no statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+} else {
+  cat("After adjustment for prior knowledge assessment score, there was a statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+}
+
+# extract coefficients - covariate
+f_val <- tmp$`F value`[3]
+p_val <- tmp$`Pr(>F)`[3]
+numdf <- tmp$Df[3]
+dendf <- tmp$Df[nrow(tmp)]
+
+# add to markdown - covariate
+if (p_val > 0.05) {
+  cat("The covariate prior knowledge did not significantly predict performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+} else {
+  cat("The covariate prior knowledge significantly predicted performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+}
+
+# lsr::etaSquared(m1) computes [partial] eta square
+out <- merge(tmp, lsr::etaSquared(m2), by = 0, all.x = T)
+
+# round values 
+out[, c(2:4,6:7 )] <- round(out[, c(2:4,6:7 )], 2) # two digits
+out[, 5] <- round(out[, 5], 3)
+
+out <- out[!out$Row.names == "(Intercept)", ] # remove intercept
+out$Row.names <- c("AO effect", "Residuals", "Prior knowledge") # rename
+out <- out[order(out$Row.names),]
+out$eta.sq <- NULL
+
+names(out) <- c("", "SS", "df", "F value", "p value", "eta.sq.part")
+
+```
+
 ##### Sensitivity analyses
 
 There may be other special cases where the participants have fallen behind in their online studies and Course 3 was released to them before they have completed the prior knowledge assessment in Course 2, Module 1. Likewise, participants may complete modules within a course in non-sequential order. In these cases, sensitivity analyses were conducted to determine whether the inclusion or exclusion of such participants impacted the results.  
@@ -1085,6 +1149,8 @@ out <- as.data.frame(rbind(NA,
                            lsr::etaSquared(m1, anova = T), 
                            NA,
                            lsr::etaSquared(m2, anova = T),
+                           NA,
+                           lsr::etaSquared(m2a, anova = T),
                            NA,
                            lsr::etaSquared(m3, anova = T),
                            NA,
