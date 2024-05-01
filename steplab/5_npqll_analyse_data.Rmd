@@ -488,6 +488,7 @@ if (p_val > 0.05) {
 par(mfrow = c(2, 2))
 plot(m1)
 
+
 ```
 
 To determine linearity between the covariate and the outcome variable overall and at each level of the independent variable (i.e., introductory material manipulation), scatter plots were created. The scatter plots show the covariate (i.e., standardised score in the prior knowledge assessment) on the x-axis and the dependent variable (i.e., standardised score in the learning outcome assessment) on the y-axis. For the grouped scatter plot, data is shown in separate panels, depending on the kind of introductory material presented. Regression slopes predicting the dependent variable using the covariate were added to check the assumption of homogeneity of regression slopes. As shown below, the regression lines are parallel.
@@ -523,7 +524,7 @@ if (p_val > 0.05) {
 
 # scatterplot with all data
 plt_all <- ggplot(data = df, aes(x = score_pretest_c, y = score_posttest_c)) +
-  geom_point(color = nondominant_col) +
+  geom_point(color = nondominant_col, position = position_jitter(width = 0.1, height = 0.1)) +
   #facet_wrap(. ~ group, nrow = 2) + 
   stat_smooth(formula = y ~ x, method = "lm", fullrange = T, se = T, alpha=0.2, color = dominant_col) +
   theme + 
@@ -537,14 +538,14 @@ plt_all <- ggplot(data = df, aes(x = score_pretest_c, y = score_posttest_c)) +
 
 # grouped scatterplot with 
 plt_grp <- ggplot(data = df, aes(x = score_pretest_c, y = score_posttest_c)) +
-  geom_point(color = nondominant_col) +
+  geom_point(color = nondominant_col, position = position_jitter()) +
   facet_wrap(. ~ group, nrow = 2) + 
   stat_smooth(formula = y ~ x, method = "lm", fullrange = T, se = T, alpha=0.2, color = dominant_col) +
   theme + 
   #'scale_x_continuous(breaks=seq(0, 10, 2)) +
   xlab("Prior knowledge assessment") + ylab("Learning outcome assessment") +
   ggpubr::stat_cor(method = "pearson", cor.coef.name = "r",
-                   p.accuracy = 0.001, r.accuracy = 0.01,
+                   p.accuracy = .001, r.accuracy = .01,
                    label.y = 2.5) +
   # stat_regline_equation(label.y = 1.5, aes(label = ..eq.label..)) +
   # stat_regline_equation(label.y = 1, aes(label = ..rr.label..)) +
