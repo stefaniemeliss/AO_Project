@@ -1,3 +1,7 @@
+# load libraries
+library(ggplot2)
+library(extrafont)
+
 # rain cloud plot
 
 # define variables for plotting
@@ -32,13 +36,13 @@ col.tint <- function(col, tint=.5) {
 }
 
 # define theme for plot
-theme <- theme(
-  plot.title = element_text(size=14, face="bold", hjust = 0.5),
-  axis.title.y = element_text(size=10, face="bold"),
+theme <- theme_bw() + theme(
+  text=element_text(family="Segoe UI"),
+  plot.title = element_text(size=14, face="bold"),
+  axis.title = element_text(size=10, face="bold"),
   legend.title = element_blank(),
   legend.position = "bottom"
-) + theme_bw()
-
+)
 
 dominant_col <- coral
 nondominant_col <- navy
