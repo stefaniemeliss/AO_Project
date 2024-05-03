@@ -145,11 +145,10 @@ plt <- plot_raincloud(df, "Finished", "q_total",
                ylower = 0, yupper = nrow(quest), ybreaks = 2, yintercept = nrow(quest)/4,
                title = "Descriptive visualisation of performance in prior knowledge assessment",
                ylab = "Total number of correct items") + theme(axis.title.x = element_blank(), axis.text.x = element_blank()) 
-print(suppressWarnings(plt))
 
 ```
 
-Above, a "raincloud" plot was used to visualise the data. A raincloud plot used here combines a half violin plot (illustrating the distribution of the data, i.e., the charcole-coloured cloud) with a boxplot (showing summary statistics, i.e., rectangle with whiskers) and a dot plot (capturing the raw data, i.e., the charcole-coloured rain). Additionally, the mean (+/- standard error) were added in coral together with a horizontal line marking chance level performance.  
+Above, a "raincloud" plot was used to visualise the data. A raincloud plot used here combines a half violin plot (illustrating the distribution of the data, i.e., the navy-coloured cloud) with a boxplot (showing summary statistics, i.e., rectangle with whiskers) and a dot plot (capturing the raw data, i.e., the navy-coloured rain). Additionally, the mean (+/- standard error) were added in coral together with a horizontal line marking chance level performance.  
 
 Descriptive statistics can further be found in the table below.
 
@@ -187,7 +186,7 @@ binom$q <- factor(binom$q, levels = paste0("Q", 1:nrow(quest)))
 
 # use desc as input for a bar graph for each question
 ggplot(binom, aes(x = q, y = perc)) +
-  geom_bar(stat = "identity", fill = ambition_coral) +
+  geom_bar(stat = "identity", fill = dominant_col) +
   geom_errorbar(aes(ymin=ci_lower, ymax=ci_upper), width=.2) +
   geom_hline(yintercept = 0.25, linetype="dashed") +
   theme_bw() + 
@@ -233,7 +232,7 @@ for (q in 1:length(qs)) {
     xlab("Answer options") +
     ylab("Proportion selected") + coord_cartesian(ylim = c(0,1)) +
     #ggtitle(unique(df[, paste0(qs[q], "_question")])) +
-    scale_fill_manual(values = c(ambition_charcole, ambition_coral)) +
+    scale_fill_manual(values = c(nondominant_col, dominant_col)) +
     theme(legend.position = "none") +
     #scale_x_discrete(labels = paste("Option", 1:4)) +
     scale_y_continuous(labels = scales::label_percent(), breaks=seq(0,1,0.1))
@@ -291,7 +290,6 @@ plt <- plot_raincloud(df, "Finished", "quest_amount_score",
                xlower = 1, xupper = 1,
                ylower = -2, yupper = 2, 
                ylab = "Rating")  + theme(axis.title.x = element_blank(), axis.text.x = element_blank()) 
-print(suppressWarnings(plt))
 
 ```
 
@@ -363,7 +361,6 @@ plt <- plot_raincloud(df, "Finished", "quest_difficulty_score",
                xlower = 1, xupper = 1,
                ylower = -2, yupper = 2, 
                ylab = "Rating") + theme(axis.title.x = element_blank(), axis.text.x = element_blank()) 
-print(suppressWarnings(plt))
 
 ```
 
@@ -458,7 +455,6 @@ desc$variable <- factor(desc$variable, levels = vars)
 # create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
 plt <- plot_raincloud(desc, "variable", "value", ylower = -2, yupper = 2, 
                       ylab = "Rating", xlab = "Items")
-print(suppressWarnings(plt))
 ```
 Additional descriptive statistics were computed and included below.
 
@@ -515,7 +511,7 @@ names(desc) <- gsub("_", "", names(desc))
 
 lowerfun <- function(data,mapping){
   ggplot(data = data, mapping = mapping)+
-    geom_point(position=position_jitter(height=0.25, width=0.25), col = ambition_charcole) +
+    geom_point(position=position_jitter(height=0.25, width=0.25), col = nondominant_col) +
   coord_cartesian(ylim = c(-2,2), xlim = c(-2,2))
 
 } 
@@ -523,7 +519,7 @@ lowerfun <- function(data,mapping){
 diagfun <- function(data,mapping){
   
   ggplot(data = data, mapping = mapping)+
-    geom_histogram(stat = "count", binwidth = 1, fill = ambition_coral) + 
+    geom_histogram(stat = "count", binwidth = 1, fill = dominant_col) + 
     coord_cartesian(ylim = c(0,100), xlim = c(-2,2))
 } 
 
@@ -626,14 +622,13 @@ plt <- plot_raincloud(df, "Finished", "q_2pl",
                ylower = -2, yupper = 2, ybreaks = 0.5,
                title = "Descriptive visualisation of performance in prior knowledge assessment",
                ylab = "Theta") + theme(axis.title.x = element_blank(), axis.text.x = element_blank()) 
-print(suppressWarnings(plt))
 ```
 
 The latent score and sum scores are highly correlated with each other.  
 ```{r, echo = F}
 ggplot(df, aes(x = q_total, y = q_2pl)) +
-  geom_point(col = ambition_charcole) + 
-  geom_smooth(method=lm, col = ambition_coral, fullrange = T) +
+  geom_point(col = nondominant_col) + 
+  geom_smooth(method=lm, col = dominant_col, fullrange = T) +
   theme_bw() +
   ggtitle("Relationship Between Sum Score And IRT Approach") +
   ylab("Theta")+xlab("Sum score") +

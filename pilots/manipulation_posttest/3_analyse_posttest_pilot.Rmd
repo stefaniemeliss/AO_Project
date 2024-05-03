@@ -109,7 +109,7 @@ Upon following the Qualtrics survey distribution link, participants were informe
 
 ## Results: Epistemic Emotions Scale
 
-After reading one of the two introductory materials, participants were asked to rate their epistemic emotions using the 7-item short version of the Epistemic Emotions Scale (Pekrun et al., 2016). Lower ratings indicate a lower intensity of a given epistemic emotion. Below, for each epistemic emotion, the desciptives were computed across the whole sample as well as within each group separately. An independent two sample t-test was used to determine whether the groups differ significantly in the ratings. Additionally, a “raincloud” plot was used to visualise the data. A raincloud plot used here combines a half violin plot (illustrating the distribution of the data, i.e., the charcole-coloured cloud) with a boxplot (showing summary statistics, i.e., rectangle with whiskers) and a dot plot (capturing the raw data, i.e., the charcole-coloured rain). Additionally, the mean (+/- standard error) were added in coral together with a horizontal line marking chance level performance.  
+After reading one of the two introductory materials, participants were asked to rate their epistemic emotions using the 7-item short version of the Epistemic Emotions Scale (Pekrun et al., 2016). Lower ratings indicate a lower intensity of a given epistemic emotion. Below, for each epistemic emotion, the desciptives were computed across the whole sample as well as within each group separately. An independent two sample t-test was used to determine whether the groups differ significantly in the ratings. Additionally, a “raincloud” plot was used to visualise the data. A raincloud plot used here combines a half violin plot (illustrating the distribution of the data, i.e., the navy-coloured cloud) with a boxplot (showing summary statistics, i.e., rectangle with whiskers) and a dot plot (capturing the raw data, i.e., the navy-coloured rain). Additionally, the mean (+/- standard error) were added in coral together with a horizontal line marking chance level performance.  
 
 As shown below, participants exposed to the non-AO introductory materials experienced all epistemic emotions numerically more intensively. After stringent Bonferoni correction (alpha (k) = .05/7 = .007), the difference remained significant for "confused".  
 
@@ -359,7 +359,7 @@ binom$perc <- binom$n_success/binom$n_trial
 binom$i <- factor(binom$i, levels = free_text)
 # use desc as input for a bar graph for each question
 ggplot(binom, aes(x = i, y = perc)) +
-  geom_bar(stat = "identity", fill = ambition_coral) +
+  geom_bar(stat = "identity", fill = dominant_col) +
   geom_errorbar(aes(ymin=ci_lower, ymax=ci_upper), width=.2) +
   geom_hline(yintercept = 0.5, linetype="dashed") +
   theme_bw() + 
@@ -533,7 +533,7 @@ for (i in 1:length(mc)) {
   rm(tmp, tmp2)
   
   # determine fill colour
-  cols <- c(ambition_charcole, ambition_coral)
+  cols <- c(nondominant_col, dominant_col)
   cols <- c(col.tint(navy, tint = 0.4), navy)
   labels <- c("incorrect", "correct")
   if(length(unique(binom[, paste0(item, "_sol")])) == 1){
@@ -614,7 +614,7 @@ points$item <- factor(points$item, levels = mc)
 
 # use desc as input for a bar graph for each question
 ggplot(points, aes(x = item, y = mean)) +
-  geom_bar(stat = "identity", fill = ambition_coral) +
+  geom_bar(stat = "identity", fill = dominant_col) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.2) +
   theme_bw() + 
   coord_cartesian(ylim = c(0,4)) + #scale_y_continuous(labels = scales::label_percent(), breaks=seq(0,1,0.1)) +
