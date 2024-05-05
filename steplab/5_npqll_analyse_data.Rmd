@@ -506,7 +506,7 @@ tmp[, 6] <- round(tmp[, 6], 3)
 
 # reorder columns
 tmp <- tmp[, c(2:6, 1)]
-write.csv(tmp, "table_s2.csv")
+write.csv(tmp, "table_s3.csv")
 
 # extract coefficients - interaction term
 tmp <- car::Anova(m_int, type = "III")
@@ -700,7 +700,7 @@ emm$dv_adj <- paste0(round(emm$emm, 2), " (", round(emm$se, 2), ")")
 emm <- emm[, c("group", "cov", "dv", "dv_adj")]
 names(emm) <- c("Group", "Prior knowledge (covariate)", "Observed learning outcome", "Adjusted learning outcome")
 
-write.csv(emm, "table_4.csv", row.names = F)
+write.csv(emm, "table_3.csv", row.names = F)
 
 
 ```
@@ -1173,7 +1173,7 @@ out[, 6] <- round(out[, 6], 3)
 # reorder columns
 out <- out[, c(2:6, 1)]
 
-write.csv(out, "table_3.csv", row.names = T)
+write.csv(out, "table_2.csv", row.names = T)
 
 
 ```
