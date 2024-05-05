@@ -44,4 +44,4 @@ names(weighted_sd_df) <- "w_sd"
 
 # collect all data in output table
 out$nonAo <- paste0(round(weighted_means_df$w_mean, 2), " (", round(weighted_sd_df$w_sd, 2), ")")
-write.csv(out, file = "elexikon_summary_stats.csv")
+write.csv(out, file = "elexikon_summary_stats.csv", row.names = F, quote = F)
