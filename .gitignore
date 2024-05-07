@@ -3,7 +3,7 @@
 .RData
 .Ruserdata
 *.Rproj
-*.html
+.html
 *.csv
 pilots/colour_palette.R
 */.dbeaver/*
