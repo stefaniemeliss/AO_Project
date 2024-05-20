@@ -466,7 +466,7 @@ df$group_d <- ifelse(df$group == "AO", 1,
 ##### Assumption checks
 
 Before conducting the ANCOVA, assumptions were checked. A Shapiro-Wilk test was used to determine whether residuals in the model were normally distributed.
-```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE, out.width='100%', out.height='100%'}
 # determine the ANCOVA model
 m1 <- lm(score_posttest_c ~ group_d + score_pretest_c, data = df)
 
@@ -486,10 +486,24 @@ if (p_val > 0.05) {
 
 # plot model
 par(mfrow = c(2, 2))
-plot(m1)
+plot(m1,
+     family = "Segoe UI",
+     cook.legendChanges = list(x = "topright"))
+
+```
+
+```{r, include=F}
+# save plot to file
+png(filename = "plot.lm.png", width = 640, height = 640, res = 100)
+par(mfrow = c(2, 2))
+plot(m1,
+     family = "Segoe UI",
+     cook.legendChanges = list(x = "topright"))
+dev.off()
 
 
 ```
+
 
 To determine linearity between the covariate and the outcome variable overall and at each level of the independent variable (i.e., introductory material manipulation), scatter plots were created. The scatter plots show the covariate (i.e., standardised score in the prior knowledge assessment) on the x-axis and the dependent variable (i.e., standardised score in the learning outcome assessment) on the y-axis. For the grouped scatter plot, data is shown in separate panels, depending on the kind of introductory material presented. Regression slopes predicting the dependent variable using the covariate were added to check the assumption of homogeneity of regression slopes. As shown below, the regression lines are parallel.
 ```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
