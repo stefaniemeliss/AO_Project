@@ -2,6 +2,9 @@
 library(ggplot2)
 library(extrafont)
 
+# helper function to convert font size in pt to mm
+devtools::source_url("https://github.com/zmorrissey/commonR/blob/master/R/pt_to_mm.R?raw=TRUE")
+
 # rain cloud plot
 
 # define variables for plotting
