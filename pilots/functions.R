@@ -73,7 +73,7 @@ ambition_theme <- theme_bw(base_family = "Segoe UI") +
     legend.title = element_text(size = font_size, face = "bold"),
     legend.text = element_text(size = font_size),
     strip.text = element_text(size = font_size),
-    plot.caption = element_text(size = font_size),
+    plot.caption = element_text(size = font_size, face = "plain"),
     strip.background = element_rect(fill = black20),
     legend.position = "bottom"
   )
