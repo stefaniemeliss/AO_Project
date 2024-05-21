@@ -51,12 +51,6 @@ black20 <- col.tint(black, tint = .2)
 black10 <- col.tint(black, tint = .1)
 palette_black <- c(black, black40, black30, black20, black10)
 
-# load libraries
-library(ggplot2)
-library(extrafont)
-# if not run before, run
-# font_import()
-
 # define font sizesfor normal text and headings in pt
 font_size = 12
 head_size = font_size + 2
