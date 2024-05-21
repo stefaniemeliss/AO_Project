@@ -111,7 +111,7 @@ plot_raincloud <- function(data = df, xvar = x, yvar = y,
     # determine titles
     ggtitle(paste0(title)) + xlab(paste0(xlab)) + ylab(paste0(ylab)) +
     labs(caption = note) +
-    theme +
+    ambition_theme +
     theme(plot.caption = element_text(hjust=0))
   #+ theme(axis.title.x = element_blank(), axis.text.x = element_blank()) 
   
