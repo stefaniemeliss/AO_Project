@@ -190,8 +190,7 @@ plt <- ggplot(data = df_l, aes(x = timepoint, y = score_c, group = user_id)) +
   stat_summary(fun.data = mean_se, geom = "errorbar", width = .05, col = dominant_col, group = 1) +
   xlab("Assessment") + ylab("Standardised score") + labs(col = "Introductory material") +
   labs(caption = "Error bars represent SE.") +
-  theme +
-  theme(plot.caption = element_text(hjust=0))
+  ambition_theme
 plt
 
 ```
@@ -292,8 +291,7 @@ plt <- ggplot(data = tmp, aes(x = group, y = emm)) +
   coord_cartesian(ylim = c(min(df$score_posttest), max(df$score_posttest))) +
   xlab("Introductory material") + ylab("Adjusted mean learning outcome assessment") +
   labs(caption = "Error bars represent SE.") +
-  theme +
-  theme(plot.caption = element_text(hjust=0))
+  ambition_theme
 plt
 
 ```
