@@ -201,7 +201,7 @@ ggplot(ees, aes(x = emotion, y = mean, fill = group)) +
   geom_bar(stat = "identity", position="dodge") +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.2, position =position_dodge(.9)) +
   #geom_hline(yintercept = 0.5, linetype="dashed") +
-  theme_bw() + 
+  ambition_theme + 
   scale_fill_manual(values = c(coral, navy)) +
   coord_cartesian(ylim = c(1,5)) + #scale_y_continuous(labels = scales::label_percent(), breaks=seq(0,1,0.1)) +
   ylab("Likert scale rating (mean +/- SE)") +
@@ -235,7 +235,7 @@ ggplot(data = tmp, aes(x = variable, y = rating, col = ResponseId, group = Respo
   geom_line(linewidth=1, alpha = 0.7, position = position_dodge(width = 0.2)) +
   scale_colour_manual(values = sample(color, n)) +
   #geom_jitter(width = 0.1, height = 0.1) +
-  theme + theme(legend.position = "none") +
+  ambition_theme + theme(legend.position = "none") +
   facet_grid(group ~ .) +
   coord_cartesian(ylim = c(1,5)) + #scale_y_continuous(labels = scales::label_percent(), breaks=seq(0,1,0.1)) +
   ylab("Likert scale rating") +
@@ -362,7 +362,7 @@ ggplot(binom, aes(x = i, y = perc)) +
   geom_bar(stat = "identity", fill = dominant_col) +
   geom_errorbar(aes(ymin=ci_lower, ymax=ci_upper), width=.2) +
   geom_hline(yintercept = 0.5, linetype="dashed") +
-  theme_bw() + 
+  ambition_theme + 
   coord_cartesian(ylim = c(0,1)) + scale_y_continuous(labels = scales::label_percent(), breaks=seq(0,1,0.1)) +
   ylab("Proportion correct (+/- 99% CI)") +
   xlab("Questions") +
@@ -547,7 +547,7 @@ for (i in 1:length(mc)) {
     geom_bar(aes(y=perc_selected), stat = "identity") +
     # point range = success rate and CI binomal test
     geom_pointrange(aes(y=perc_success,ymin=ci_lower, ymax=ci_upper), size=1, fill="white", shape=22, col = coral, linewidth=1, alpha = 0.75) +
-    theme_bw() +
+    ambition_theme +
     ggtitle(item) +
     xlab("Answer options") +
     ylab("Proportion selected") + coord_cartesian(ylim = c(0,1)) +
@@ -616,7 +616,7 @@ points$item <- factor(points$item, levels = mc)
 ggplot(points, aes(x = item, y = mean)) +
   geom_bar(stat = "identity", fill = dominant_col) +
   geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.2) +
-  theme_bw() + 
+  ambition_theme + 
   coord_cartesian(ylim = c(0,4)) + #scale_y_continuous(labels = scales::label_percent(), breaks=seq(0,1,0.1)) +
   ylab("Points awarded (mean +/- SE)") +
   xlab("Questions") +
