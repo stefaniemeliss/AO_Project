@@ -189,7 +189,7 @@ ggplot(binom, aes(x = q, y = perc)) +
   geom_bar(stat = "identity", fill = dominant_col) +
   geom_errorbar(aes(ymin=ci_lower, ymax=ci_upper), width=.2) +
   geom_hline(yintercept = 0.25, linetype="dashed") +
-  theme_bw() + 
+  ambition_theme + 
   coord_cartesian(ylim = c(0,1)) + scale_y_continuous(labels = scales::label_percent(), breaks=seq(0,1,0.1)) +
   ylab("Proportion correct") +
   xlab("Questions") +
@@ -228,7 +228,7 @@ for (q in 1:length(qs)) {
   
   plt <- ggplot(df, aes(x = get(paste0(qs[q], "_label")), fill = get( as.character(qs[q]) ))) +
     geom_bar(aes(y = (after_stat(count))/sum(after_stat(count)))) +
-    theme_bw() +
+    ambition_theme +
     xlab("Answer options") +
     ylab("Proportion selected") + coord_cartesian(ylim = c(0,1)) +
     #ggtitle(unique(df[, paste0(qs[q], "_question")])) +
@@ -629,7 +629,7 @@ The latent score and sum scores are highly correlated with each other.
 ggplot(df, aes(x = q_total, y = q_2pl)) +
   geom_point(col = nondominant_col) + 
   geom_smooth(method=lm, col = dominant_col, fullrange = T) +
-  theme_bw() +
+  ambition_theme +
   ggtitle("Relationship Between Sum Score And IRT Approach") +
   ylab("Theta")+xlab("Sum score") +
   coord_cartesian(xlim = c(0,nrow(quest)), ylim = c(-2,2)) + scale_x_continuous(breaks=seq(0,nrow(quest),2)) + scale_y_continuous(breaks=seq(-2,2,0.5)) +
