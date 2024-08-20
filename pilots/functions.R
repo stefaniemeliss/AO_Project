@@ -1,5 +1,6 @@
 # load theme for all plots
-devtools::source_url("https://github.com/stefaniemeliss/ambition_theme/blob/main/ambition_theme.R?raw=TRUE")
+#devtools::source_url("https://github.com/stefaniemeliss/ambition_theme/blob/main/ambition_theme.R?raw=TRUE")
+source("C:/Users/stefanie.meliss/OneDrive - Ambition Institute/code/ambition_theme/ambition_theme.R")
 
 
 # rain cloud plot
