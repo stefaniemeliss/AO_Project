@@ -1,0 +1,1601 @@
+---
+title: "NPQLL - Analysis"
+author: "Stefanie Meliss"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+options(scipen = 999)
+# empty work space
+rm(list = ls())
+
+# define directory
+dir_step <- getwd()
+
+# load libraries
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(mirt)
+
+# load in functions
+# devtools::source_url("https://github.com/stefaniemeliss/AO_Project/blob/main/pilots/functions.R?raw=TRUE")
+source("C:/Users/stefanie.meliss/OneDrive - Ambition Institute/code/AO_NPQLL/pilots/functions.R")
+
+# function to determine outliers
+is_outlier_iqr <- function(x) {
+  # +/- 1.5*IQR
+  return(x < quantile(x, 0.25, na.rm = T) - 1.5 * IQR(x, na.rm = T) | x > quantile(x, 0.75, na.rm = T) + 1.5 * IQR(x, na.rm = T))
+}
+
+# function to compute se
+se <- function(x) {
+  sd(x)/sqrt(length(x))
+}
+
+
+```
+
+
+
+```{r, include=FALSE}
+# --- Read in data --- #
+
+# read in file that was past to LMS to determine grouptag
+rand <- read.csv(file = file.path(dir_step, "npqll_random_group_assignment.csv"))
+
+# read in data
+pre <- read.csv(file = file.path(dir_step, "processed_data_course_2_module_1.csv"))
+post <- read.csv(file = file.path(dir_step, "processed_data_course_4_module_1.csv"))
+dt <- read.csv(file = file.path(dir_step, "processed_data_timestamps.csv"))
+
+# merge ALL data
+all <- merge(rand, pre, by = "user_id", all.x = T)
+all <- merge(all, post, by = "user_id", all.x = T)
+all <- merge(all, dt, by = "user_id", all.x = T)
+
+# merge complete data
+df <- all[!is.na(all$score_posttest), ]
+
+```
+
+### Sample size and manipulation checks
+
+```{r, echo=FALSE, results='asis'}
+
+
+cat("Data collection for the project closed on October 31st 2023 at 23:59. Up to this time point, we received N = ", nrow(pre), "responses to the prior knowledge test and N = ", nrow(post), "responses to the learning outcome assessment. ")
+cat("There is complete data (i.e., pre- and post-test measures) from N = ", sum(post$user_id %in% pre$user_id), " participants (", nrow(df[df$group == "AO",])," in the experimental group and ", nrow(df[df$group == "non-AO",])," in the control group.) ", sep = "")
+
+
+cat("Upon careful inspection of the learning outcome assessment data, two participants (one from each group) were identified who provided non-responses in at least 14 out of 15 free-text items. Data from these two participants were excluded from the analyses. \n\n")
+
+# remove participants who provided non-responses in posttest free text items
+df <- df %>% 
+  filter(! user_id %in% c("US0czjy1n8wg", "USujo2jn-fwi"))
+
+
+```
+
+To determine whether any participants in that were exposed to the AO (non-AO) were indeed part of the experimental (control) group, we compared the user ids of participants randomly *assigned* to each group against the user ids of participants *exposed* to the respective introductory material.  
+
+
+```{r, echo=FALSE, results='asis'}
+# --- Manipulation check --- #
+
+# extract user_id as vector for each group
+exp <- rand$user_id[rand$group == "AO"]
+con <- rand$user_id[rand$group == "non-AO"]
+
+# get user_ids of ppt that have accessed AO or non-AO
+AO <- dt$user_id[!is.na(dt$dt_a_f_mat_intr_exp)]
+nAO <- dt$user_id[!is.na(dt$dt_a_f_mat_intr_cont)]
+
+# check whether any user has accessed AO (non-AO) that was NOT part of the experimental (control) group
+if (sum(! AO %in% exp) == 0) {
+  cat("No participant has accessed the AO that was not part of the experimental group. ")
+} else { cat("Some participants that were not part of the experimental group were exposed to the AO.")}
+
+
+if (sum(! nAO %in% con) == 0) {
+  cat("No participant has accessed the non-AO that was not part of the control group. ")
+} else { cat("Some participants that were not part of the control group were exposed to the non-AO.")}
+
+cat("\n\n\n")
+
+# check how many participants in the experimental (control) group did not access the AO (non-AO)
+if (sum(is.na(df$dt_a_f_mat_intr_exp[df$group == "AO"])) == 0) {
+  cat("All participant in the experimental group have accessed the AO. ")
+} else { cat("Some participants (N = ", sum(is.na(df$dt_a_f_mat_intr_exp[df$group == "AO"])), ") in the experimental group have not accessed the AO. ", sep = "")}
+
+if (sum(is.na(df$dt_a_f_mat_intr_cont[df$group == "non-AO"])) == 0) {
+  cat("All participant in the experimental group have accessed the AO. ")
+} else { cat("Some participants (N = ", sum(is.na(df$dt_a_f_mat_intr_cont[df$group == "non-AO"])), ") in the control group have not accessed the non-AO. ", sep = "")}
+
+# code variable that captures whether introductory material was accessed or not
+df$access_mat_intro <- ifelse(df$group == "AO" & !is.na(df$dt_a_f_mat_intr_exp), TRUE,
+                              ifelse(df$group == "non-AO" & !is.na(df$dt_a_f_mat_intr_cont), TRUE,
+                                     FALSE))
+
+# remove participants that have not accessed the assigned introductory materials
+if (sum(is.na(df$dt_a_f_mat_intr_exp[df$group == "AO"])) != 0 | sum(is.na(df$dt_a_f_mat_intr_cont[df$group == "non-AO"])) != 0) {
+  df <- df[df$access_mat_intro, ]
+  
+  cat("The respective participants were removed from further data analysis.")
+} 
+
+cat("\n\n\n")
+
+# check how many participants in the experimental (control) group did not access learning material
+if (sum(is.na(df$dt_a_f_mat_learn[df$group == "AO"])) == 0) {
+  cat("All participant in the experimental group have accessed the learning material. ")
+} else { cat("Some participants (N = ", sum(is.na(df$dt_a_f_mat_learn[df$group == "AO"])), ") in the experimental group have not accessed the learning material. ", sep = "")}
+
+if (sum(is.na(df$dt_a_f_mat_learn[df$group == "non-AO"])) == 0) {
+  cat("All participant in the experimental group have accessed the learning material. ")
+} else { cat("Some participants (N = ", sum(is.na(df$dt_a_f_mat_learn[df$group == "non-AO"])), ") in the control group have not accessed the learning material. ", sep = "")}
+
+cat("\n\n\n")
+
+# code variable that captures whether learning material was accessed or not
+df$access_mat_learn <- ifelse(!is.na(df$dt_a_f_mat_learn), TRUE, FALSE)
+
+# remove participants that have not accessed the assigned introductory materials
+if (sum(is.na(df$dt_a_f_mat_learn)) != 0 ) {
+  df <- df[df$access_mat_learn, ]
+  
+  cat("The respective participants were removed from further data analysis. ")
+} 
+
+cat("\n\n\n")
+
+```
+Engagement data from Steplab was further used to determine whether participants followed protocol. In the pre-registration, we specified that participants will be excluded if one of the following criteria is met: (1) The timestamp of when the object containing the to-be-learned material (Course 3, Module 1) was assessed predates the timestamp of when the object containing the prior knowledge assessment (Course 2, Module 1) was marked as completed; or (2) the object containing the to-be-learned material was assessed before the object containing the introductory material.  
+
+Due to inconsistencies in the data with respect to when the object containing the prior knowledge assessment was marked as completed, timestamp data from when the assessment itself was completed.
+
+```{r, echo=FALSE, results='asis'}
+# check first exclusion criteria #
+
+if (sum(df$exclude_1[df$group == "AO"]) == 0) {
+  cat("No participants in the experimental group were excluded due to the first criteria. ")
+} else { cat("Some participants (N = ", sum(df$exclude_1[df$group == "AO"]), ") in the experimental group were excluded due to the first criteria. ", sep = "")}
+
+if (sum(df$exclude_1[df$group == "non-AO"]) == 0) {
+  cat("No participants in the control group were excluded due to the first criteria. ")
+} else { cat("Some participants (N = ", sum(df$exclude_1[df$group == "non-AO"]), ") in the control group were excluded due to the first criteria. ", sep = "")}
+
+cat("\n")
+
+# remove participants based on first exclusion criteria
+if (sum(df$exclude_1) != 0 ) {
+  df <- df[!df$exclude_1, ]
+  
+  cat("The respective participants were removed from further data analysis. ")
+} 
+
+cat("\n")
+
+# check second exclusion criteria #
+
+if (sum(df$exclude_2[df$group == "AO"]) == 0) {
+  cat("No participants in the experimental group were excluded due to the second criteria. ")
+} else { cat("Some participants (N = ", sum(df$exclude_2[df$group == "AO"]), ") in the experimental group were excluded due to the second criteria. ", sep = "")}
+
+if (sum(df$exclude_2[df$group == "non-AO"]) == 0) {
+  cat("No participants in the control group were excluded due to the second criteria. ")
+} else { cat("Some participants (N = ", sum(df$exclude_2[df$group == "non-AO"]), ") in the control group were excluded due to the second criteria. ", sep = "")}
+
+cat("\n")
+
+# remove participants based on second exclusion criteria
+if (sum(df$exclude_2) != 0 ) {
+  df <- df[!df$exclude_2, ]
+  
+  cat("The respective participants were removed from further data analysis. ")
+} 
+
+
+# remove participants tha completed posttest before accessing learning materials
+if (sum(df$int_2 < 0) != 0) {
+  cat("Data checks further revealed that some participants completed the learning outcome assessment without having accessed the learning material beforehand. ") 
+  
+  if (sum(df$int_2[df$group == "AO"] < 0) == 0) {
+    cat("No participants in the experimental group were affected by this. ")
+  } else { cat("Some participants (N = ", sum(df$int_2[df$group == "AO"] < 0), ") in the experimental group were affected by this. ", sep = "")}
+  
+  if (sum(df$int_2[df$group == "non-AO"] < 0) == 0) {
+    cat("No participants in the control group were affected by this. ")
+  } else { cat("Some participants (N = ", sum(df$int_2[df$group == "non-AO"] < 0), ") in the control group were affected by this. ", sep = "")}
+  
+  cat("The respective participants were removed from further data analysis. ")
+  
+  df <- df[df$int_2 > 0, ]
+  
+  cat("\n")
+  
+}
+
+
+# remove outliers
+cat("Lastly, the remaining data was checked for outliers. Outliers were defined as observations that are more than 1.5 IQR below Q1 or more than 1.5 IQR above Q3. ")
+
+# identify outliers: 1.5 * IQR
+df$outlier_iqr_pretest <- is_outlier_iqr(df$score_pretest)
+df$outlier_iqr_posttest <- is_outlier_iqr(df$score_posttest)
+df$outlier_iqr <- ifelse(is.na(df$outlier_iqr_pretest) | is.na(df$outlier_iqr_posttest), NA,
+                         ifelse(df$outlier_iqr_pretest| df$outlier_iqr_posttest, T, F))
+
+
+if (sum(df$outlier_iqr[df$group == "AO"]) == 0) {
+  cat("No participants in the experimental group were affected by this. ")
+} else { cat("Some participants (N = ", sum(df$outlier_iqr[df$group == "AO"]), ") in the experimental group were affected by this. ", sep = "")}
+
+if (sum(df$outlier_iqr[df$group == "non-AO"]) == 0) {
+  cat("No participants in the control group were affected by this. ")
+} else { cat("Some participants (N = ", sum(df$outlier_iqr[df$group == "non-AO"]), ") in the control group were affected by this. ", sep = "")}
+
+if (sum(df$outlier_iqr != 0)) {
+  cat("The respective participants were removed from further data analysis. ")
+  df <- df[!df$outlier_iqr, ]
+}
+
+cat("\n\n")
+
+cat("The sample analysed here consisted of N =", nrow(df), "participants.")
+
+
+
+```
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+
+# code whether participants have provided information on age or gender
+df$demogs_complete <- ifelse(is.na(df$gender) == T | is.na(df$age) == T, FALSE, TRUE)
+
+cat("In total, N = ", sum(df$demogs_complete), " participants have voluntarily provided information on their age and gender. Analysing the data showed that the mean reported age was ", round(mean(df$age, na.rm = T), 2), " years (SD = ", round(sd(df$age, na.rm = T), 2), "). The sample consisted to ",  round(nrow(df[df$demogs_complete & df$gender == "female", ])/nrow(df[df$demogs_complete, ]),3)*100, "% of females. ", sep = "")
+
+
+data <- df[df$demogs_complete, ]
+grp <- "group"
+
+out <- data.frame(var = character(4),
+                  exp = character(4),
+                  con = character(4),
+                  tes = character(4))
+
+# gender #
+var <- "gender"
+
+out[1, "var"] <- "Gender (% female)"
+
+# calculate percentage female
+tmp <- as.data.frame(table(data[, c(var, grp)]))
+
+out[1, "exp"] <- paste0(
+  round(tmp$Freq[tmp$gender == "female" & tmp$group == "AO"] / sum(tmp$Freq[tmp$group == "AO"]) *100, 2), "%"
+)
+out[1, "con"] <- paste0(
+  round(tmp$Freq[tmp$gender == "female" & tmp$group == "non-AO"] / sum(tmp$Freq[tmp$group == "non-AO"]) *100, 2), "%"
+)
+
+tmp <- chisq.test(table(data[, c(var, grp)]))
+
+out[1, "tes"] <- paste0("X2(", tmp$parameter, ") = ", round(tmp$statistic, 3), ", p = ", round(tmp$p.value, 3))
+
+
+# age
+out[2, "var"] <- "Age"
+
+var <- "age"
+tmp <- do.call("rbind",psych::describeBy(data[, var], group = data[, grp])) # get descriptives per group
+
+out[2, "exp"] <- paste0(
+  round(tmp$mean[1], 2), " (", round(tmp$sd[1], 2), ") [", round(tmp$min[1], 2), "; ", round(tmp$max[1], 2), "]"
+)
+out[2, "con"] <- paste0(
+  round(tmp$mean[2], 2), " (", round(tmp$sd[2], 2), ") [", round(tmp$min[2], 2), "; ", round(tmp$max[2], 2), "]"
+)
+
+tmp <- t.test(age ~ group, data = data)
+
+out[2, "tes"] <- paste0("t(", round(tmp$parameter, 2), ") = ", round(tmp$statistic, 3), ", p = ", round(tmp$p.value, 3))
+
+
+# experience
+out[3, "var"] <- "Work experience"
+
+var <- "experience"
+tmp <- do.call("rbind",psych::describeBy(data[, var], group = data[, grp])) # get descriptives per group
+
+out[3, "exp"] <- paste0(
+  round(tmp$mean[1], 2), " (", round(tmp$sd[1], 2), ") [", round(tmp$min[1], 2), "; ", round(tmp$max[1], 2), "]"
+)
+out[3, "con"] <- paste0(
+  round(tmp$mean[2], 2), " (", round(tmp$sd[2], 2), ") [", round(tmp$min[2], 2), "; ", round(tmp$max[2], 2), "]"
+)
+
+tmp <- t.test(experience ~ group, data = data)
+
+out[3, "tes"] <- paste0("t(", round(tmp$parameter, 2), ") = ", round(tmp$statistic, 3), ", p = ", round(tmp$p.value, 3))
+
+# prior knowledge
+out[4, "var"] <- "Prior knowledge"
+
+var <- "score_pretest"
+tmp <- do.call("rbind",psych::describeBy(df[, var], group = df[, grp])) # get descriptives per group
+
+out[4, "exp"] <- paste0(
+  round(tmp$mean[1], 2), " (", round(tmp$sd[1], 2), ") [", round(tmp$min[1], 2), "; ", round(tmp$max[1], 2), "]"
+)
+out[4, "con"] <- paste0(
+  round(tmp$mean[2], 2), " (", round(tmp$sd[2], 2), ") [", round(tmp$min[2], 2), "; ", round(tmp$max[2], 2), "]"
+)
+
+tmp <- t.test(score_pretest ~ group, data = df)
+
+out[4, "tes"] <- paste0("t(", round(tmp$parameter, 2), ") = ", round(tmp$statistic, 3), ", p = ", round(tmp$p.value, 3))
+
+
+names(out) <- c("", "AO group", "non-AO group", "Group comparison")
+
+write.csv(out, "table_1.csv", row.names = F)
+
+```
+
+### Descriptive characteristics
+
+##### Prior knowledge assessment
+
+To assess participants’ prior knowledge on the topic of the learning material (i.e., development of reading abilities), a 10-item four-alternative forced-choice test was developed. The scope of the prior knowledge assessment was for each item to target a different construct relevant to the development of reading abilities (e.g., “An orthography is…”). For each item, the correct answer (i.e., “The set of conventions associated with a written language.”) together with three plausible distractors (e.g., “The set of conventions associated with a phonics system.”) was presented. 
+
+Participants were instructed to select the answer option that they think is correct and were encouraged to guess but discouraged from looking up the correct responses. The order of presentation of the ten items and corresponding distractors was randomised, and the same random order was applied across all participants. All items were presented on a single screen. Responses could only be submitted once each of the ten items has been completed. 
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# define vars
+var <- "score_pretest"
+grp <- "group"
+
+# generate and print descriptive tables to markdown
+table_desc(data = df, group_var = grp, dep_var = var)    
+
+# create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
+plt <- plot_raincloud(data = df, xvar = grp, yvar = var, 
+                      xlower = 1, xupper = 2,
+                      ylower = 0, yupper = 10, ybreaks = 1,
+                      #title = "Descriptive visualisation of rating in each group",
+                      xlab = "Introductory material",
+                      ylab = "Total number of correct items", 
+                      note = "Error bars represent SE.")
+
+# run two sample t-test
+tmp <- t.test(df$experience ~ df$group)
+
+# extract values
+t_val <- tmp$statistic
+p_val <- tmp$p.value
+df_val <- tmp$parameter
+
+# add to markdown
+if (p_val > 0.05) {
+  cat("No significant difference in prior knowledge was found between the groups, t(", round(df_val, 2), ") = ", round(t_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+} else {
+  cat("A significant difference in prior knowledge was found between the groups, t(", round(df_val, 2), ") = ", round(t_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+}
+
+
+```
+
+
+##### Learning outcome assessment
+
+To determine whether exposure to an AO facilitates learning, an expert in the field (CS) developed a learning outcome assessment for the study. The learning outcome assessment targets information presented in the learning material. We created a set of 23 items capturing knowledge retention and transfer. The resulting learning outcome assessment consisted of 15 short answer items (e.g., “Complete this sentence: The smallest chunk of meaning within a word is called a __________.”) and 8 four-alternative forced-choice items. For each presented item (e.g., “Which of these are examples of comprehension strategies that might be used by pupils to support them to build meaning from a challenging text?”), participants were instructed to select all correct answers out of four alternatives they thought as correct (e.g., “Clarifying”, “Summarising”, “Highlighting”, “Blending”). 
+
+For each of the short answer items (e.g., “Please complete the following sentence: With extensive practice, the process of word recognition develops a sense of flow. This flow of words is called __________.”), the correct solution was determined before the assessment was administered (e.g., “(reading) fluency”).  Additionally, all given answers were reviewed by a rater (CS) blind to the experimental condition and alternative acceptable solutions (e.g., “prosody”, “automaticity”) were identified. For each multiple-choice item with its four answer options, the pattern of selected/unselected options was compared against the correct pattern. This means that a point was awarded if an option was correctly selected and if an option was correctly not selected. However, due to an error, one multiple-choice item was set up to be a single-choice item, i.e., only one answer option could be selected. This item was scored as if it was a single item and a point was awarded if the correct answer was selected, but not if the incorrect answers were not selected. The maximum total score on the multiple-choice items was therefore 29. 
+
+Participants were provided with matching instructions for each item type. Participants were informed that incorrect answers in the multiple-choice items will be penalised. Further, they were instructed to not look up responses. The order of presentation of the items (and corresponding distractors, in case of multiple-choice items) was randomised, and the same random order was be applied across all participants. All items will be presented on a single screen. Responses could only be submitted if each of the items has been completed. 
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# define vars
+var <- "score_posttest"
+grp <- "group"
+
+# generate and print descriptive tables to markdown
+table_desc(data = df, group_var = grp, dep_var = var)    
+
+# create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
+plt <- plot_raincloud(data = df, xvar = grp, yvar = var, 
+                      xlower = 1, xupper = 2,
+                      #ylower = 15, yupper = 45, ybreaks = 1,
+                      xlab = "Introductory material",
+                      ylab = "Total number of points", 
+                      note = "Error bars represent SE.")
+
+```
+
+##### Change in knowledge
+
+To determine whether there was an overall change in knowledge, the standardised score was computed for both assessments and plotted for each participant. No overall pattern emerges.
+
+```{r, echo = F, fig.align='center', warning=FALSE}
+# standardise scores
+df$score_pretest_c <- scale(df$score_pretest)
+df$score_posttest_c <- scale(df$score_posttest)
+
+# convert data into long format
+df_l <- df %>% 
+  select(user_id, group, score_pretest_c, score_posttest_c) %>%
+  pivot_longer(cols = c("score_pretest_c", "score_posttest_c"),
+               names_to = "timepoint", 
+               values_to = "score_c")
+
+df_l$timepoint <- ifelse(df_l$timepoint == "score_pretest_c", "Prior knowledge", "Learning outcome")
+df_l$timepoint <- factor(df_l$timepoint, levels = c("Prior knowledge", "Learning outcome"))
+
+# create a spaghetti plot
+plt <- ggplot(data = df_l, aes(x = timepoint, y = score_c, group = user_id)) +
+  geom_line(color = nondominant_col) +
+  facet_wrap(. ~ group, nrow = 2) +
+  stat_summary(fun="mean", geom = "point", col = dominant_col, group = 1) + 
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = .05, col = dominant_col, group = 1) +
+  xlab("Assessment") + ylab("Standardised score") + labs(col = "Introductory material") +
+  labs(caption = "Error bars represent SE.") +
+  ambition_theme +
+  theme(plot.caption = element_text(hjust=0))
+plt
+
+```
+
+
+### Primary hypothesis test
+
+Our primary hypothesis states that the exposure to an AO will improve the encoding of later presented, to-be-learned material. To test this hypothesis, an ANCOVA is used. We are interested in the main effect of experimental condition, i.e., whether an AO or historical overview, presented as introductory material, affects learning of the evidence summary (measured as the sum score of the learning outcome assessment), after controlling for prior knowledge at baseline (measured as the sum score of the prior knowledge assessment). The sum scores were standardised and the independent variable was dummy-coded (0 = "non-AO", 1 = "AO").  
+
+```{r, echo = F, fig.align='center', warning=FALSE}
+
+# effect code group
+df$group_e <- ifelse(df$group == "AO", 1, 
+                     ifelse(df$group == "non-AO", -1, NA))
+# dummy code group
+df$group_d <- ifelse(df$group == "AO", 1, 
+                     ifelse(df$group == "non-AO", 0, NA))
+
+```
+
+##### Assumption checks
+
+Before conducting the ANCOVA, assumptions were checked. A Shapiro-Wilk test was used to determine whether residuals in the model were normally distributed.
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE, out.width='100%', out.height='100%'}
+# determine the ANCOVA model
+m1 <- lm(score_posttest_c ~ group_d + score_pretest_c, data = df)
+
+# check whether residuals are normally distributed
+tmp <- shapiro.test(m1$residuals)
+
+# extract values
+p_val <- tmp$p.value
+stat <- tmp$statistic
+
+# add to markdown
+if (p_val > 0.05) {
+  cat("The results of the Shapiro-Wilk test indicated that the residuals did not significantly deviate from normality, W = ", round(stat, 3), ", p = ", round(p_val, 3), ". This is further shown in the model plots below.", sep = "")
+} else {
+  cat("The results of the Shapiro-Wilk test indicated that the residuals significantly deviated from normality, W = ", round(stat, 3), ", p = ", round(p_val, 3), ". This is further shown in the model plots below.", sep = "")
+}
+
+# plot model
+par(mfrow = c(2, 2))
+plot(m1,
+     family = "Segoe UI",
+     cook.legendChanges = list(x = "topright"))
+
+```
+
+```{r, include=F}
+# save plot to file
+png(filename = "plot.lm1.png", width = 1080, height = 1240, res = 300)
+plot(m1,
+     which = 1, #1, 2, 3, 5
+     #caption = "",
+     family = "Segoe UI",
+     cook.legendChanges = list(x = "topright"))
+dev.off()
+
+png(filename = "plot.lm2.png", width = 1080, height = 1240, res = 300)
+plot(m1,
+     which = 2, #1, 2, 3, 5
+     #caption = "",
+     family = "Segoe UI",
+     cook.legendChanges = list(x = "topright"))
+dev.off()
+
+png(filename = "plot.lm3.png", width = 1080, height = 1240, res = 300)
+plot(m1,
+     which = 3, #1, 2, 3, 5
+     #caption = "",
+     family = "Segoe UI",
+     cook.legendChanges = list(x = "topright"))
+dev.off()
+
+png(filename = "plot.lm4.png", width = 1080, height = 1240, res = 300)
+plot(m1,
+     which = 5, #1, 2, 3, 5
+     #caption = "",
+     family = "Segoe UI",
+     cook.legendChanges = list(x = "topright"))
+dev.off()
+
+
+```
+
+
+To determine linearity between the covariate and the outcome variable overall and at each level of the independent variable (i.e., introductory material manipulation), scatter plots were created. The scatter plots show the covariate (i.e., standardised score in the prior knowledge assessment) on the x-axis and the dependent variable (i.e., standardised score in the learning outcome assessment) on the y-axis. For the grouped scatter plot, data is shown in separate panels, depending on the kind of introductory material presented. Regression slopes predicting the dependent variable using the covariate were added to check the assumption of homogeneity of regression slopes. As shown below, the regression lines are parallel.
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# assumption of homogeneity of regression slopes
+# check whether interaction term is significant
+m_int <- lm(score_posttest_c ~ group_e * score_pretest_c, data = df)
+
+tmp <- data.frame(lsr::etaSquared(m_int, anova = T))
+# remove eta square column
+tmp$eta.sq <- NULL
+
+tmp[, 1:5] <- round(tmp[, 1:5], 2)
+tmp[, 6] <- round(tmp[, 6], 3)
+
+# reorder columns
+tmp <- tmp[, c(2:6, 1)]
+write.csv(tmp, "table_s3.csv")
+
+# extract coefficients - interaction term
+tmp <- car::Anova(m_int, type = "III")
+f_val <- tmp$`F value`[4]
+p_val <- tmp$`Pr(>F)`[4]
+numdf <- tmp$Df[4]
+dendf <- tmp$Df[nrow(tmp)]
+
+# add to markdown
+if (p_val > 0.05) {
+  cat("The lack of an interaction between the independent variable and covariate was further confirmed by an non-significant interaction term in the model, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+} else {
+  cat("The interaction between the independent variable and covariate was significant, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+}
+
+# scatterplot with all data
+plt_all <- ggplot(data = df, aes(x = score_pretest_c, y = score_posttest_c)) +
+  geom_point(color = nondominant_col, position = position_jitter(width = 0.1, height = 0.1)) +
+  #facet_wrap(. ~ group, nrow = 2) + 
+  stat_smooth(formula = y ~ x, method = "lm", fullrange = T, se = T, alpha=0.2, color = dominant_col) +
+  ambition_theme + 
+  #'scale_x_continuous(breaks=seq(0, 10, 2)) +
+  xlab("Prior knowledge assessment") + ylab("Learning outcome assessment") +
+  ggpubr::stat_cor(method = "pearson", cor.coef.name = "r",
+                   p.accuracy = 0.001, r.accuracy = 0.01,
+                   label.y = 2.5, 
+                   size = pt_to_mm(font_size), family = "Segoe UI")  # stat_regline_equation(label.y = 1.5, aes(label = ..eq.label..)) +
+# stat_regline_equation(label.y = 1, aes(label = ..rr.label..))
+# plt_all
+
+# grouped scatterplot with 
+plt_grp <- ggplot(data = df, aes(x = score_pretest_c, y = score_posttest_c)) +
+  geom_point(color = nondominant_col, position = position_jitter(width = 0.1, height = 0.1)) +
+  facet_wrap(. ~ group, nrow = 2) + 
+  stat_smooth(aes(col = group), formula = y ~ x, method = "lm", fullrange = T, se = T, alpha=0.2) +
+  scale_color_manual(values = c(red,blue)) +
+  ambition_theme + 
+  theme(legend.position = "none") +
+  #'scale_x_continuous(breaks=seq(0, 10, 2)) +
+  xlab("Prior knowledge assessment") + ylab("") +
+  ggpubr::stat_cor(method = "pearson", cor.coef.name = "r",
+                   p.accuracy = .001, r.accuracy = .01,
+                   label.y = 2.5, 
+                   size = pt_to_mm(font_size), family = "Segoe UI") #+
+# stat_regline_equation(label.y = 1.5, aes(label = ..eq.label..)) +
+# stat_regline_equation(label.y = 1, aes(label = ..rr.label..)) 
+# plt_grp
+
+plt <- ggpubr::ggarrange(plt_all, plt_grp, 
+                         ncol = 2,
+                         labels = c("A", "B"),
+                         font.label = list(size = head_size, family = "Segoe UI"))
+plt
+
+#annotate_figure(plt, top = text_grob("Linearity between covariate and dependent variable", 
+#                                     face = "bold", size = 14))
+
+# plt <- ggplot(data = df, aes(x = score_pretest, y = score_posttest)) +
+#   geom_point(aes(color = group)) +
+#   #facet_wrap(. ~ group, nrow = 2) +
+#   stat_smooth(formula = y ~ x, method = "lm", fullrange = T, aes(color = group, fill = group), se = T, alpha=0.2) +
+#   theme + #theme(legend.position = "top") +
+#   scale_color_manual(values = c(teal, orange)) + scale_fill_manual(values = c(teal, orange)) +
+#   xlab("Prior knowledge assessment") + ylab("Learning outcome assessment") + labs(col = "Introductory material", fill = "Introductory material") +
+# 
+#   scale_x_continuous(breaks=seq(0, 10, 2))
+# plt
+
+```
+
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# jitter the data so that the position is the same throughout all three graphs
+set.seed(123)
+df$score_posttest_c_jitter <- jitter(df$score_posttest_c)
+df$score_pretest_c_jitter <- jitter(df$score_pretest_c)
+
+
+# scatterplot with all data
+plt_all <- ggplot(data = df, aes(x = score_pretest_c_jitter, y = score_posttest_c_jitter)) +
+  geom_point(color = nondominant_col) +
+  stat_smooth(formula = y ~ x, method = "lm", fullrange = T, se = T, alpha=0.2, color = dominant_col) +
+  ambition_theme + 
+  coord_cartesian(xlim = c(-2.5,2.5), ylim = c(-2.5,2.5)) +
+  xlab("Prior knowledge assessment") + ylab("Learning outcome assessment")
+# export without cor coefs
+ggsave("scatter_all_clean.jpeg",
+       plot = plt_all,
+       height = 1080,
+       width = 3630,
+       units = "px",
+       dpi = 300)
+# export with cor coefs
+plt_all <- plt_all +
+  ggpubr::stat_cor(method = "pearson", cor.coef.name = "r",
+                   p.accuracy = 0.001, r.accuracy = 0.01,
+                   label.y = 2.5, 
+                   size = pt_to_mm(font_size), family = "Segoe UI")  
+plt_all
+ggsave("scatter_all.jpeg",
+       height = 1080,
+       width = 3630,
+       units = "px",
+       dpi = 300)
+
+
+# scatterplot with AO data
+ao <- subset(df, group == "AO")
+
+plt_ao <- ggplot(data = ao, aes(x = score_pretest_c_jitter, y = score_posttest_c_jitter)) +
+  geom_point(color = nondominant_col) +
+  stat_smooth(formula = y ~ x, method = "lm", fullrange = T, se = T, alpha=0.2, color = red) +
+  ambition_theme + 
+  coord_cartesian(xlim = c(-2.5,2.5), ylim = c(-2.5,2.5)) +
+  xlab("Prior knowledge assessment") + ylab("Learning outcome assessment")  
+# export without cor coefs
+ggsave("scatter_AO_clean.jpeg",
+       plot = plt_ao,
+       height = 1080,
+       width = 3630,
+       units = "px",
+       dpi = 300)
+# export with cor coefs
+plt_ao <- plt_ao +
+  ggpubr::stat_cor(method = "pearson", cor.coef.name = "r",
+                   p.accuracy = 0.001, r.accuracy = 0.01,
+                   label.y = 2.5, 
+                   size = pt_to_mm(font_size), family = "Segoe UI")  
+plt_ao
+ggsave("scatter_AO.jpeg",
+       height = 1080,
+       width = 3630,
+       units = "px",
+       dpi = 300)
+
+# scatterplot with non-AO data
+nao <- subset(df, group == "non-AO")
+
+plt_nao <- ggplot(data = nao, aes(x = score_pretest_c_jitter, y = score_posttest_c_jitter)) +
+  geom_point(color = nondominant_col) +
+  stat_smooth(formula = y ~ x, method = "lm", fullrange = T, se = T, alpha=0.2, color = blue) +
+  ambition_theme + 
+  coord_cartesian(xlim = c(-2.5,2.5), ylim = c(-2.5,2.5)) +
+  xlab("Prior knowledge assessment") + ylab("Learning outcome assessment")  
+# export without cor coefs
+ggsave("scatter_non-AO_clean.jpeg",
+       plot = plt_nao,
+       height = 1080,
+       width = 3630,
+       units = "px",
+       dpi = 300)
+# export with cor coefs
+plt_nao <- plt_nao +
+  ggpubr::stat_cor(method = "pearson", cor.coef.name = "r",
+                   p.accuracy = 0.001, r.accuracy = 0.01,
+                   label.y = 2.5, 
+                   size = pt_to_mm(font_size), family = "Segoe UI")  
+plt_nao
+ggsave("scatter_non-AO.jpeg",
+       height = 1080,
+       width = 3630,
+       units = "px",
+       dpi = 300)
+
+```
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+
+# scatterplot with all data
+plt_all <- ggplot(data = df, aes(x = score_pretest_c, y = score_posttest_c)) +
+  geom_point(color = nondominant_col, position = position_jitter(width = 0.1, height = 0.1)) +
+  #facet_wrap(. ~ group, nrow = 2) + 
+  stat_smooth(formula = y ~ x, method = "lm", fullrange = T, se = T, alpha=0.2, color = dominant_col) +
+  ambition_theme + 
+  coord_cartesian(xlim = c(-2.5,2.5), ylim = c(-2.5,2.5)) +
+    theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        plot.margin = margin(t = -1,  # Top margin
+                             r = -1,  # Right margin
+                             b = -1,  # Bottom margin
+                             l = -1))
+# export without cor coefs
+ggsave("scatter_all_vclean.jpeg",
+       plot = plt_all,
+       height = 1080,
+       width = 3630,
+       units = "px",
+       dpi = 300)
+
+
+# scatterplot with AO data
+ao <- subset(df, group == "AO")
+
+plt_ao <- ggplot(data = ao, aes(x = score_pretest_c, y = score_posttest_c)) +
+  geom_point(color = nondominant_col, position = position_jitter(width = 0.1, height = 0.1)) +
+  stat_smooth(formula = y ~ x, method = "lm", fullrange = T, se = T, alpha=0.2, color = red) +
+  ambition_theme + 
+  coord_cartesian(xlim = c(-2.5,2.5), ylim = c(-2.5,2.5)) +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())  
+# export without cor coefs
+ggsave("scatter_AO_vclean.jpeg",
+       plot = plt_ao,
+       height = 1080,
+       width = 3630,
+       units = "px",
+       dpi = 300)
+
+
+# scatterplot with non-AO data
+nao <- subset(df, group == "non-AO")
+
+plt_nao <- ggplot(data = nao, aes(x = score_pretest_c, y = score_posttest_c)) +
+  geom_point(color = nondominant_col, position = position_jitter(width = 0.1, height = 0.1)) +
+  stat_smooth(formula = y ~ x, method = "lm", fullrange = T, se = T, alpha=0.2, color = blue) +
+  ambition_theme + 
+  coord_cartesian(xlim = c(-2.5,2.5), ylim = c(-2.5,2.5)) +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank())
+# export without cor coefs
+ggsave("scatter_non-AO_vclean.jpeg",
+       plot = plt_nao,
+       height = 1080,
+       width = 3630,
+       units = "px",
+       dpi = 300)
+
+```
+
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# Assumptions of homogeneity of variances
+
+# add residuals to df
+df$res_m1 <- m1$residuals
+
+# test homogeneity of variances
+tmp <- bartlett.test(res_m1 ~ group, data = df)
+
+# extract values
+p_val <- tmp$p.value
+stat <- tmp$statistic
+
+# add to markdown
+if (p_val > 0.05) {
+  cat("The results of the Bartlett test indicated that the assumption of homogeneity of the residual variances was met, Bartlett's K-squared = ", round(stat, 3), ", p = ", round(p_val, 3), ".", sep = "")
+} else {
+  cat("The results of the Bartlett test indicated that the assumption of homogeneity of the residual variances was not met, Bartlett's K-squared = ", round(stat, 3), ", p = ", round(p_val, 3), ".", sep = "")
+}
+
+
+```
+
+##### ANCOVA
+
+An ANCOVA was run to determine the effect of introductory material on the learning outcome assessment score after controlling for prior knowledge assessment scores.
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# generate Ancova output
+tmp <- car::Anova(m1, type = "III")
+
+# extract coefficients - group effect
+f_val <- tmp$`F value`[2]
+p_val <- tmp$`Pr(>F)`[2]
+numdf <- tmp$Df[2]
+dendf <- tmp$Df[nrow(tmp)]
+
+# add to markdown - group effect
+if (p_val > 0.05) {
+  cat("After adjustment for prior knowledge assessment score, there was no statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+} else {
+  cat("After adjustment for prior knowledge assessment score, there was a statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+}
+
+
+# extract coefficients - covariate
+f_val <- tmp$`F value`[3]
+p_val <- tmp$`Pr(>F)`[3]
+numdf <- tmp$Df[3]
+dendf <- tmp$Df[nrow(tmp)]
+
+# add to markdown - covariate
+if (p_val > 0.05) {
+  cat("The covariate prior knowledge did not significantly predict performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+} else {
+  cat("The covariate prior knowledge significantly predicted performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+}
+```
+
+The results are summarised as type-III analysis-of-variance table below.
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# lsr::etaSquared(m1) computes [partial] eta square
+out_m1 <- merge(tmp, lsr::etaSquared(m1), by = 0, all.x = T)
+
+# round values 
+out_m1[, c(2:4,6:7 )] <- round(out_m1[, c(2:4,6:7 )], 2) # two digits
+out_m1[, 5] <- round(out_m1[, 5], 3)
+
+out_m1 <- out_m1[!out_m1$Row.names == "(Intercept)", ] # remove intercept
+out_m1$Row.names <- c("AO effect", "Residuals", "Prior knowledge") # rename
+out_m1 <- out_m1[order(out_m1$Row.names),]
+out_m1$eta.sq <- NULL
+
+names(out_m1) <- c("", "SS", "df", "F value", "p value", "eta.sq.part")
+
+print(knitr::kable(out_m1))
+cat('\n\n<!-- -->\n\n')
+
+
+cat('\n\nAdditionally, the results were transformed into the OLS regression out_m1put.\n\n')
+sjPlot::tab_model(m1, show.stat = T, show.fstat = T, show.df = T, pred.labels = c("Intercept", "AO effect", "Prior knowledge"))
+cat('\n\n<!-- -->\n\n')
+
+```
+
+This indicates that our primary hypothesis - that exposure to an AO (compared to a control condition) during teacher professional development ahead of new, to-be-learned material will facilitate learning of the new material - could not be confirmed. The lack of effect of introductory material is further illustrated in the figure below, plotting the mean of the learning outcome assessment score in each group, adjusted for the prior knowledge effect.  
+
+##### Descriptives
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# define model with raw data for plotting
+m <- lm(score_posttest ~ group + score_pretest, data = df)
+
+# extract adjusted means and SE into df for plotting
+adjusted_means <- effects::effect("group", m, se = T)
+
+emm <- data.frame(group = adjusted_means$variables$group$levels)
+emm$emm <- adjusted_means$fit
+emm$se <- adjusted_means$se
+
+# add mean and se of covariate
+emm$m_cov <- tapply(df$score_pretest, df$group, mean)
+emm$se_cov <- tapply(df$score_pretest, df$group, se)
+
+# add mean and se of DV
+emm$m_dv <- tapply(df$score_posttest, df$group, mean)
+emm$se_dv <- tapply(df$score_posttest, df$group, se)
+
+# create plot
+plt <- ggplot(data = emm, aes(x = group, y = emm)) +
+  geom_errorbar(aes(ymin = emm - 1.96*se, ymax = emm + 1.96*se), width = .05, col = black) +
+  geom_point(aes(col = group), size = 2) +
+  scale_color_manual(values = c(red,blue)) +
+  coord_cartesian(ylim = c(min(df$score_posttest), max(df$score_posttest))) +
+  xlab("Introductory material") + ylab("Learning outcome assessment") +
+  #labs(caption = "Error bars represent 95% confidence interval.") +
+  ambition_theme +
+  theme(legend.position = "none") +
+  theme(plot.caption = element_text(hjust=0))
+plt
+ggsave("figure3.jpeg",
+       plot = plt,
+       height = 1080,
+       width = 1509,
+       units = "px",
+       dpi = 300)
+# create table for export
+emm$cov <- paste0(round(emm$m_cov, 2), " (", round(emm$se_cov, 2), ")")
+emm$dv <- paste0(round(emm$m_dv, 2), " (", round(emm$se_dv, 2), ")")
+emm$dv_adj <- paste0(round(emm$emm, 2), " (", round(emm$se, 2), ")")
+
+emm <- emm[, c("group", "cov", "dv", "dv_adj")]
+names(emm) <- c("Group", "Prior knowledge (covariate)", "Observed learning outcome", "Adjusted learning outcome")
+
+write.csv(emm, "table_3.csv", row.names = F)
+
+
+```
+
+
+### Exploratory analyses
+
+
+##### No Exclusion
+To determine whether the decision to exclude observations influenced the results, the ANCOVA analysis were repeated using data from all N = 151 participants who completed the learning outcome assessment.
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+
+# get data from all ppt
+df_noexcl <- all[!is.na(all$score_posttest), ]
+
+# standardise scores
+df_noexcl$score_pretest_c <- scale(df_noexcl$score_pretest)
+df_noexcl$score_posttest_c <- scale(df_noexcl$score_posttest)
+
+# effect code group
+df_noexcl$group_e <- ifelse(df_noexcl$group == "AO", 1, 
+                            ifelse(df_noexcl$group == "non-AO", -1, NA))
+# dummy code group
+df_noexcl$group_d <- ifelse(df_noexcl$group == "AO", 1, 
+                            ifelse(df_noexcl$group == "non-AO", 0, NA))
+
+# determine the ANCOVA model
+m2 <- lm(score_posttest_c ~ group_d + score_pretest_c, data = df_noexcl)
+
+# generate Ancova output
+tmp <- car::Anova(m2, type = "III")
+
+# extract coefficients - group effect
+f_val <- tmp$`F value`[2]
+p_val <- tmp$`Pr(>F)`[2]
+numdf <- tmp$Df[2]
+dendf <- tmp$Df[nrow(tmp)]
+
+# add to markdown - group effect
+if (p_val > 0.05) {
+  cat("After adjustment for prior knowledge assessment score, there was no statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+} else {
+  cat("After adjustment for prior knowledge assessment score, there was a statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+}
+
+# extract coefficients - covariate
+f_val <- tmp$`F value`[3]
+p_val <- tmp$`Pr(>F)`[3]
+numdf <- tmp$Df[3]
+dendf <- tmp$Df[nrow(tmp)]
+
+# add to markdown - covariate
+if (p_val > 0.05) {
+  cat("The covariate prior knowledge did not significantly predict performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+} else {
+  cat("The covariate prior knowledge significantly predicted performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+}
+
+# lsr::etaSquared(m1) computes [partial] eta square
+out <- merge(tmp, lsr::etaSquared(m2), by = 0, all.x = T)
+
+# round values 
+out[, c(2:4,6:7 )] <- round(out[, c(2:4,6:7 )], 2) # two digits
+out[, 5] <- round(out[, 5], 3)
+
+out <- out[!out$Row.names == "(Intercept)", ] # remove intercept
+out$Row.names <- c("AO effect", "Residuals", "Prior knowledge") # rename
+out <- out[order(out$Row.names),]
+out$eta.sq <- NULL
+
+names(out) <- c("", "SS", "df", "F value", "p value", "eta.sq.part")
+
+```
+
+##### Pre-registered exclusion only
+To determine whether the decision to exclude observations beyond what was pre-registered influenced the results, the ANCOVA analysis were repeated using data from N = 145 participants who were not excluded based on the pre-regisetered criteria.
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+
+# remove based on pre-registered exclusion criteria
+df_prereg <- df_noexcl[!df_noexcl$exclude_1,] # 1 excluded
+df_prereg <- df_prereg[!df_prereg$exclude_2,] # 1 excluded
+
+# remove outlier posttest
+df_prereg <- df_prereg[!is_outlier_iqr(df_prereg$score_posttest), ] # 4 ppt excluded
+
+# standardise scores
+df_prereg$score_pretest_c <- scale(df_prereg$score_pretest)
+df_prereg$score_posttest_c <- scale(df_prereg$score_posttest)
+
+# determine the ANCOVA model
+m2a <- lm(score_posttest_c ~ group_d + score_pretest_c, data = df_prereg)
+
+# generate Ancova output
+tmp <- car::Anova(m2a, type = "III")
+
+# extract coefficients - group effect
+f_val <- tmp$`F value`[2]
+p_val <- tmp$`Pr(>F)`[2]
+numdf <- tmp$Df[2]
+dendf <- tmp$Df[nrow(tmp)]
+
+# add to markdown - group effect
+if (p_val > 0.05) {
+  cat("After adjustment for prior knowledge assessment score, there was no statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+} else {
+  cat("After adjustment for prior knowledge assessment score, there was a statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+}
+
+# extract coefficients - covariate
+f_val <- tmp$`F value`[3]
+p_val <- tmp$`Pr(>F)`[3]
+numdf <- tmp$Df[3]
+dendf <- tmp$Df[nrow(tmp)]
+
+# add to markdown - covariate
+if (p_val > 0.05) {
+  cat("The covariate prior knowledge did not significantly predict performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+} else {
+  cat("The covariate prior knowledge significantly predicted performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+}
+
+# lsr::etaSquared(m1) computes [partial] eta square
+out <- merge(tmp, lsr::etaSquared(m2), by = 0, all.x = T)
+
+# round values 
+out[, c(2:4,6:7 )] <- round(out[, c(2:4,6:7 )], 2) # two digits
+out[, 5] <- round(out[, 5], 3)
+
+out <- out[!out$Row.names == "(Intercept)", ] # remove intercept
+out$Row.names <- c("AO effect", "Residuals", "Prior knowledge") # rename
+out <- out[order(out$Row.names),]
+out$eta.sq <- NULL
+
+names(out) <- c("", "SS", "df", "F value", "p value", "eta.sq.part")
+
+```
+
+##### Sensitivity analyses
+
+There may be other special cases where the participants have fallen behind in their online studies and Course 3 was released to them before they have completed the prior knowledge assessment in Course 2, Module 1. Likewise, participants may complete modules within a course in non-sequential order. In these cases, sensitivity analyses were conducted to determine whether the inclusion or exclusion of such participants impacted the results.  
+
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# check first sensitivity analysis criteria #
+cat("\nCourse 3 was released to participants on 22nd May 2023. ")
+
+if (sum(df$sens_excl_1[df$group == "AO"]) == 0) {
+  cat("No participants in the experimental group completed the prior knowledge assessment after this date. ")
+} else { cat("Some participants (N = ", sum(df$sens_excl_1[df$group == "AO"]), ") in the experimental group completed the prior knowledge assessment after this date. ", sep = "")}
+
+if (sum(df$sens_excl_1[df$group == "non-AO"]) == 0) {
+  cat("No participants in the control group completed the prior knowledge assessment after this date. ")
+} else { cat("Some participants (N = ", sum(df$sens_excl_1[df$group == "non-AO"]), ") in the control group completed the prior knowledge assessment after this date. ", sep = "")}
+
+cat("\n")
+
+# remove participants based on first exclusion criteria
+if (sum(df$sens_excl_1) != 0 ) {
+  sens <- df[!df$sens_excl_1, ]
+  
+  cat("The respective participants were excluded before repeating the same ANCOVA analysis reported above. ")
+  
+  # run ANOCOVA without outliers IQR
+  m3 <- lm(score_posttest_c ~ group_d + score_pretest_c, data = sens)
+  
+  # generate Ancova output
+  tmp <- car::Anova(m3, type = "III")
+  
+  # extract coefficients - group effect
+  f_val <- tmp$`F value`[2]
+  p_val <- tmp$`Pr(>F)`[2]
+  numdf <- tmp$Df[2]
+  dendf <- tmp$Df[nrow(tmp)]
+  
+  # add to markdown - group effect
+  if (p_val > 0.05) {
+    cat("After adjustment for prior knowledge assessment score, there was no statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+  } else {
+    cat("After adjustment for prior knowledge assessment score, there was a statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+  }
+  
+  
+  # extract coefficients - covariate
+  f_val <- tmp$`F value`[3]
+  p_val <- tmp$`Pr(>F)`[3]
+  numdf <- tmp$Df[3]
+  dendf <- tmp$Df[nrow(tmp)]
+  
+  # add to markdown - covariate
+  if (p_val > 0.05) {
+    cat("The covariate prior knowledge did not significantly predict performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+  } else {
+    cat("The covariate prior knowledge significantly predicted performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+  }
+} 
+
+cat("\n")
+
+```
+
+
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+# check second sensitivity analysis criteria #
+cat("To determine whether participants completed the modules in course 3 in sequential order, timestamps of when the modules were marked as completed were used. If timestamps were missing for one or more modules, this was regarded as equivalent to completing modules in non-sequential order. \n")
+
+# recode criteria: false remains false, NA becomes TRUE
+df$sens_excl_2_r <- ifelse(is.na(df$sens_excl_2) == T, T, df$sens_excl_2)
+
+if (sum(df$sens_excl_2_r[df$group == "AO"]) == 0) {
+  cat("No participants in the experimental group were identified based on the second criteria. ")
+} else { cat("Some participants (N = ", sum(df$sens_excl_2_r[df$group == "AO"]), ") in the experimental group were identified based on the second criteria. ", sep = "")}
+
+if (sum(df$sens_excl_2_r[df$group == "non-AO"]) == 0) {
+  cat("No participants in the control group were identified based on the second criteria. ")
+} else { cat("Some participants (N = ", sum(df$sens_excl_2_r[df$group == "non-AO"]), ") in the control group were identified based on the second criteria. ", sep = "")}
+
+cat("\n")
+
+# remove participants based on second exclusion criteria
+if (sum(df$sens_excl_2_r) != 0 ) {
+  sens <- df[!df$sens_excl_2_r, ]
+  
+  cat("The respective participants were excluded before repeating the same ANCOVA analysis reported above. ")
+  
+  # run ANOCOVA without outliers IQR
+  m4 <- lm(score_posttest_c ~ group_d + score_pretest_c, data = sens)
+  
+  # generate Ancova output
+  tmp <- car::Anova(m4, type = "III")
+  
+  # extract coefficients - group effect
+  f_val <- tmp$`F value`[2]
+  p_val <- tmp$`Pr(>F)`[2]
+  numdf <- tmp$Df[2]
+  dendf <- tmp$Df[nrow(tmp)]
+  
+  # add to markdown - group effect
+  if (p_val > 0.05) {
+    cat("After adjustment for prior knowledge assessment score, there was no statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+  } else {
+    cat("After adjustment for prior knowledge assessment score, there was a statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+  }
+  
+  
+  # extract coefficients - covariate
+  f_val <- tmp$`F value`[3]
+  p_val <- tmp$`Pr(>F)`[3]
+  numdf <- tmp$Df[3]
+  dendf <- tmp$Df[nrow(tmp)]
+  
+  # add to markdown - covariate
+  if (p_val > 0.05) {
+    cat("The covariate prior knowledge did not significantly predict performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+  } else {
+    cat("The covariate prior knowledge significantly predicted performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+  }
+} 
+
+cat("\n")
+
+```
+
+
+
+##### Intervals
+
+The intervals between (1) introductory material and evidence summary and (2) evidence summary and learning outcome assessment were be included as additional covariates to the ANCOVA model to determine whether the effect of exposure to an AO on learning remains after controlling for the time intervals. The intervals will be calculated using the timestamps associated with completion of the objects. The intervals will be standardised and checked for outliers to identify values that lie more than 1.5 interquartile ranges below the first or above the third quartile.  
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+
+# int_1: intervals between (1) introductory material and evidence summary #
+cat("The interval between accessing the introductory material and evidence summary ranged from", min(df$int_1), "to", max(df$int_1), "seconds. \n")
+
+# int_2: intervals between # (2) evidence summary and learning outcome assessment #
+cat("The interval between accessing the evidence summary and completing the learning outcome assessment ranged from", round(min(df$int_2), 3), "to", round(max(df$int_2), 3), "days. \n")
+
+# check for outliers
+df$outlier_iqr_int_1 <- is_outlier_iqr(df$int_1) # interval 1
+df$outlier_iqr_int_2 <- is_outlier_iqr(df$int_2) # interval 2
+df$outlier_iqr_int <- ifelse(df$outlier_iqr_int_1 == T | df$outlier_iqr_int_2 == T, T, F) # combine both
+
+if (sum(df$outlier_iqr_int) != 0 ) {
+  cat("\nWith respect to the first interval, N =", sum(df$outlier_iqr_int_1), "outliers were identified using the same IQR criteria described above. For the second interval, there were N =", sum(df$outlier_iqr_int_2), "outliers. For the sensiivity analyses, these outliers were removed.\n")
+  sens <- df[!df$outlier_iqr_int, ]
+}
+
+# compute mean and SD (after outlier removal)
+cat("The average time interval between accessing the introductory material and evidence summary was ", round(mean(sens$int_1), 2), " seconds (SD = ", round(sd(sens$int_1), 2), "). The average interval between accessing the learning material and completing the learning outcome assessment was ", round(mean(sens$int_2), 2), " days (SD = ", round(sd(sens$int_2), 2), ").\n", sep = "")
+
+# standardise values
+sens$int_1_c <- scale(sens$int_1)
+sens$int_2_c <- scale(sens$int_2)
+
+cat("The time intervals were standardised and included as covariates.\n")
+
+# run ANOCOVA
+m5 <- lm(score_posttest_c ~ group_e + score_pretest_c + int_1_c + int_2_c + int_1_c:group_e + int_2_c:group_e, data = sens)
+m5 <- lm(score_posttest_c ~ group_d + score_pretest_c + int_1_c + int_2_c, data = sens)
+
+# generate Ancova output
+tmp <- car::Anova(m5, type = "III")
+
+# extract coefficients - group effect
+f_val <- tmp$`F value`[2]
+p_val <- tmp$`Pr(>F)`[2]
+numdf <- tmp$Df[2]
+dendf <- tmp$Df[nrow(tmp)]
+
+# add to markdown - group effect
+if (p_val > 0.05) {
+  cat("After adjustment for time intervals and prior knowledge assessment score, there was no statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+} else {
+  cat("After adjustment for time intervals and prior knowledge assessment score, there was a statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+}
+
+
+# extract coefficients - covariate
+f_val <- tmp$`F value`[3]
+p_val <- tmp$`Pr(>F)`[3]
+numdf <- tmp$Df[3]
+dendf <- tmp$Df[nrow(tmp)]
+
+# add to markdown - covariate
+if (p_val > 0.05) {
+  cat("The covariate prior knowledge did not significantly predict performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+} else {
+  cat("The covariate prior knowledge significantly predicted performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+}
+cat('\n\n<!-- -->\n\n')
+sjPlot::tab_model(m5, show.stat = T, show.fstat = T, show.df = T)
+
+
+cat("\n")
+
+```
+
+As shown in the regression table, the time intervals did not predict performance in the learning outcome assessment and also did not interact with the introductory material manipulation.
+
+
+##### Exposure to AO
+
+The time in between participants first accessing the object containing the introductory materials and marking the object as completed can be seen as a proxy for how long they spent engaging with the introductory material. As such, we were interested to determine whether the inclusion of the engagement duration as a covariate impacts the results. This analysis was not pre-registered. 
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+
+# dur_mat_intro: difftime(df$dt_c_mat_intr, df$dt_a_f_mat_intr) - time in seconds #
+cat("The interval between accessing the introductory material and evidence summary ranged from", min(df$dur_mat_intro), "to", max(df$dur_mat_intro), "seconds. \n")
+
+# check for outliers
+df$outlier_dur_mat_intro <- is_outlier_iqr(df$dur_mat_intro) # interval 1
+
+if (sum(df$outlier_dur_mat_intro) != 0 ) {
+  cat("\nThere were N =", sum(df$outlier_dur_mat_intro), "outliers were identified using the same IQR criteria described above. These outliers were removed before conducting the analysis.\n")
+  sens <- df[!df$outlier_dur_mat_intro, ]
+}
+
+# compute mean and SD (after outlier removal)
+cat("The average time interval between accessing the introductory material and evidence summary was ", round(mean(sens$dur_mat_intro), 2), " seconds (SD = ", round(sd(sens$dur_mat_intro), 2), "). \n", sep = "")
+
+# standardise values
+sens$dur_mat_intro_c <- scale(sens$dur_mat_intro)
+
+cat("The duration was standardised and included as covariate.\n")
+
+# run ANOCOVA
+m5a <- lm(score_posttest_c ~ group_e + score_pretest_c + dur_mat_intro_c + dur_mat_intro_c:group_e, data = sens)
+m5a <- lm(score_posttest_c ~ group_d + score_pretest_c + dur_mat_intro_c, data = sens)
+
+# generate Ancova output
+tmp <- car::Anova(m5a, type = "III")
+
+# extract coefficients - group effect
+f_val <- tmp$`F value`[2]
+p_val <- tmp$`Pr(>F)`[2]
+numdf <- tmp$Df[2]
+dendf <- tmp$Df[nrow(tmp)]
+
+# add to markdown - group effect
+if (p_val > 0.05) {
+  cat("After adjustment for time intervals and prior knowledge assessment score, there was no statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+} else {
+  cat("After adjustment for time intervals and prior knowledge assessment score, there was a statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+}
+
+
+# extract coefficients - covariate
+f_val <- tmp$`F value`[3]
+p_val <- tmp$`Pr(>F)`[3]
+numdf <- tmp$Df[3]
+dendf <- tmp$Df[nrow(tmp)]
+
+# add to markdown - covariate
+if (p_val > 0.05) {
+  cat("The covariate prior knowledge did not significantly predict performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+} else {
+  cat("The covariate prior knowledge significantly predicted performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+}
+cat('\n\n<!-- -->\n\n')
+sjPlot::tab_model(m5, show.stat = T, show.fstat = T, show.df = T)
+
+
+cat("\n")
+
+```
+
+##### Demographics
+
+For the subset of participants that voluntarily provided demographic information, gender, and experience as classroom teacher were be included as additional covariates to test whether including additional demographic variables impacts the results. To also understand whether the manipulation may have differential effects depending on demographic variables, interaction terms with the effect-coded group variable were included. 
+
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+cor <- cor.test(df$age, df$experience, use = "pairwise.complete.obs")
+
+
+cat("Age was removed as predictor due to being highly correlated with experience, r = ", round(cor$estimate, 2),", p = .", round(cor$p.value, 3), ".", sep = "")
+```
+
+However, as shown in the regression table below, demographic variables did not predict performance in the learning outcome assessment and also did not interact with the introductory material manipulation.
+
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+
+# standardise experience
+df$experience_c <- scale(df$experience)
+
+# include demographics as covariates
+tmp <- df[df$demogs_complete, ]
+
+m6 <- lm(score_posttest_c ~ group_e + score_pretest_c + gender + experience_c + gender:group_e + experience_c:group_e, data = tmp)
+m6 <- lm(score_posttest_c ~ group_d + score_pretest_c + gender + experience_c, data = tmp)
+m6 <- lm(score_posttest_c ~ group_e + score_pretest_c + gender + experience_c + experience_c*group_e, data = tmp)
+
+# add to markdown
+sjPlot::tab_model(m6, show.stat = T, show.fstat = T, show.df = T)
+
+```
+
+
+##### Prior knowledge median split
+
+The theory surrounding AOs suggests that they are particularly beneficial if the learners are inexperienced. We hence repeated the ANCOVA analysis in a subset of participants that score below the sample median in the prior knowledge assessment.
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+
+cat("The sample median was ", median(df$score_pretest), ". \n", sep = "")
+
+
+# check for outliers
+df$below_median_pretest <- df$score_pretest < median(df$score_pretest)
+
+if (sum(df$below_median_pretest) != 0 ) {
+  cat("\nN =", sum(df$below_median_pretest), "participants were identified whose performance in the prior knowledge assessment was below the sample median. outliers were identified using the same IQR criteria described above. \n")
+  median <- df[df$below_median_pretest, ]
+}
+
+# run ANOCOVA
+m7 <- lm(score_posttest_c ~ group_d + score_pretest_c, data = median)
+m <- lm(score_posttest ~ group + score_pretest, data = median)
+
+# generate Ancova output
+tmp <- car::Anova(m7, type = "III")
+
+# adjusted means
+adjusted_means <- effects::effect("group", m, se = T)
+
+emm <- data.frame(group = adjusted_means$variables$group$levels)
+emm$emm <- adjusted_means$fit
+emm$se <- adjusted_means$se
+
+# add mean and se of covariate
+emm$m_cov <- tapply(median$score_pretest, median$group, mean)
+emm$se_cov <- tapply(median$score_pretest, median$group, se)
+
+# add mean and se of DV
+emm$m_dv <- tapply(median$score_posttest, median$group, mean)
+emm$se_dv <- tapply(median$score_posttest, median$group, se)
+
+
+# extract coefficients - group effect
+f_val <- tmp$`F value`[2]
+p_val <- tmp$`Pr(>F)`[2]
+numdf <- tmp$Df[2]
+dendf <- tmp$Df[nrow(tmp)]
+
+# add to markdown - group effect
+if (p_val > 0.05) {
+  cat("After adjustment for time intervals and prior knowledge assessment score, there was no statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+} else {
+  cat("After adjustment for time intervals and prior knowledge assessment score, there was a statistically significant difference in learning outcome assessment score between the groups, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ". ", sep = "")
+}
+
+
+# extract coefficients - covariate
+f_val <- tmp$`F value`[3]
+p_val <- tmp$`Pr(>F)`[3]
+numdf <- tmp$Df[3]
+dendf <- tmp$Df[nrow(tmp)]
+
+# add to markdown - covariate
+if (p_val > 0.05) {
+  cat("The covariate prior knowledge did not significantly predict performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+} else {
+  cat("The covariate prior knowledge significantly predicted performance in the learning outcome assessment, F(", numdf, ", ", dendf, ") = ", round(f_val, 2), ", p = ", round(p_val, 3), ".", sep = "")
+}
+cat('\n\n<!-- -->\n\n')
+sjPlot::tab_model(m7, show.stat = T, show.fstat = T, show.df = T)
+
+
+cat("\n")
+
+kableExtra::kable(emm)
+
+cat("\n")
+
+
+```
+
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+
+# create table 3 #
+
+# extract ANOVA tables from all models
+out <- as.data.frame(rbind(NA,
+                           lsr::etaSquared(m1, anova = T), 
+                           NA,
+                           lsr::etaSquared(m2, anova = T),
+                           NA,
+                           lsr::etaSquared(m2a, anova = T),
+                           NA,
+                           lsr::etaSquared(m3, anova = T),
+                           NA,
+                           lsr::etaSquared(m4, anova = T),
+                           NA,
+                           lsr::etaSquared(m5, anova = T),
+                           NA,
+                           lsr::etaSquared(m5a, anova = T),
+                           NA,
+                           lsr::etaSquared(m6, anova = T),
+                           NA,
+                           lsr::etaSquared(m7, anova = T)))
+
+# remove eta square column
+out$eta.sq <- NULL
+
+out[, 1:5] <- round(out[, 1:5], 2)
+out[, 6] <- round(out[, 6], 3)
+
+# reorder columns
+out <- out[, c(2:6, 1)]
+
+write.csv(out, "table_2.csv", row.names = T)
+
+
+```
+
+
+##### Theta estimates from 2-paramter item-response-theory (IRT) models  
+
+To create an index of prior knowledge, it is possible to simply add up items to a sum score as done above. However, measurement theories and more specifically item response theory (IRT) can be applied to measure the latent knowledge score.  
+
+A uni-dimensional model was specified and the data for each item were supplied to the model using the *'mirt package'* (Chalmers, 2012) to separately fit a two or three parameter logistic model, respectively. However, both models failed to converge. Exploratory analysis using theta estimates were hence not further pursued.
+
+```{r, echo = F}
+# source: https://philippmasur.de/2022/05/13/how-to-run-irt-analyses-in-r/
+
+# r code for IRT
+unimodel <- 'F1 = 1-10'
+
+# 2 parameter model
+fit2PL <- mirt(data =  df[, paste0("question_", c(1:10), "_score")], 
+               model = unimodel,  # alternatively, we could also just specify model = 1 in this case
+               itemtype = "2PL", 
+               verbose = FALSE)
+fit2PL
+
+# 3 parameter model
+fit3PL <- mirt(data =  df[, paste0("question_", c(1:10), "_score")], 
+               model = unimodel,  # alternatively, we could also just specify model = 1 in this case
+               itemtype = "3PL", 
+               verbose = FALSE)
+fit3PL
+
+
+```
+```{r, include = F, results='asis', fig.align='center', warning=FALSE}
+# model comparison
+tmp <- anova(fit2PL, fit3PL)
+
+# add to markdown
+cat("A 2PL and a 3PL model were fitted. However, similar as shown using pilot data, the 3PL model did not fit the data better, X2(", tmp$df[2], ") = ", round(tmp$X2[2], 2), ", p = ", round(tmp$p[2], 3), ". ", sep = "")
+
+cat("Hence, the simpler 2PL model was preferred.")
+
+# add to markdowm
+print(knitr::kable(tmp))
+cat('\n\n<!-- -->\n\n')
+
+```
+
+### Learning experience survey
+
+Upon completion of the learning assessment, participants were be asked to complete a short learning experience questionnaire (Wang et al., 2021).
+
+> The type of learning material presented did not affect the learning experience ratings.
+
+```{r, echo = F, results='asis', fig.align='center', warning=FALSE}
+
+# define learning experience items
+items <- c(
+  "Overall, I was satisfied with the introductory material presented ahead of the evidence summary in module 1 of course 3 ('Learning to read').",
+  "Overall, I was satisfied with the evidence summary presented in module 1 of course 3 ('Learning to read').",
+  "How much mental effort did you invest to learn the content from the introductory material and evidence summary presented in module 1 of course 3 ('Learning to read')?",
+  "How difficult was it for you to learn the content from the introductory material and evidence summary presented in module 1 of course 3 ('Learning to read')?"
+)
+
+anchors_low <- c(
+  "Strongly disagree",
+  "Strongly disagree",
+  "Very, very low mental effort",
+  "Very, very easy"
+)
+
+anchors_high <- c(
+  "Strongly agree",
+  "Strongly agree",
+  "Very, very high mental effort",
+  "Very, very difficult"
+)
+
+
+# define vars
+vars <- c("sat_im_score", "sat_lm_score", "effort_score", "difficulty_score")
+labels <- c("Satisfaction with introductory material",
+            "Satisfaction with learning material",
+            "Effort",
+            "Difficulty")
+grp <- "group"
+
+
+
+for (v in 1:length(vars)) {
+  
+  var <- vars[v]
+  
+  # add header
+  cat("#####", labels[v], "\n\n")
+  
+  cat("To assess ", tolower(labels[v]), ", participants were asked to rate the item '", items[v], "' on a 7-point Likert scale from 1 = '", anchors_low[v], "' to 7 = '", anchors_high[v], "'.\n\n", sep = "")
+  
+  
+  # generate and print descriptive tables to markdown
+  table_desc(data = df, group_var = grp, dep_var = var)    
+  
+  # create rain cloud plot, adapted from: https://z3tt.github.io/Rainclouds/
+  plt <- plot_raincloud(data = df, xvar = grp, yvar = var, 
+                        xlower = 1, xupper = 2,
+                        ylower = 1, yupper = 7, ybreaks = 1,
+                        #title = "Descriptive visualisation of rating in each group",
+                        xlab = "Introductory material",
+                        ylab = "Rating", 
+                        note = "Error bars represent SE.")
+  
+  # run two sample t-test
+  tmp <- t.test(df[, var] ~ df$group)
+  
+  # extract values
+  t_val <- tmp$statistic
+  p_val <- tmp$p.value
+  df_val <- tmp$parameter
+  
+  
+  # add to markdown
+  if (p_val > 0.05) {
+    cat("No significant difference in ", tolower(labels[v]), " was found between the AO (M = ", round(mean(df[df$group == "AO", var]), 2),", SD = ", round(sd(df[df$group == "AO", var]), 2),") and non-AO (M = ", round(mean(df[df$group == "non-AO", var]), 2),", SD = ", round(sd(df[df$group == "non-AO", var]), 2),") group, t(", round(df_val, 2), ") = ", round(t_val, 2), ", p = ", round(p_val, 3), ".\n\n", sep = "")
+  } else {
+    cat("A significant difference in ", tolower(labels[v]), " was found between the AO (M = ", round(mean(df[df$group == "AO", var]), 2),", SD = ", round(sd(df[df$group == "AO", var]), 2),") and non-AO (M = ", round(mean(df[df$group == "non-AO", var]), 2),", SD = ", round(sd(df[df$group == "non-AO", var]), 2),") group, t(", round(df_val, 2), ") = ", round(t_val, 2), ", p = ", round(p_val, 3), ".\n\n", sep = "")  }
+  
+  
+}
+
+```
