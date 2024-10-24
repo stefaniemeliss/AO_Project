@@ -699,11 +699,11 @@ emm$se_dv <- tapply(df$score_posttest, df$group, se)
 
 # create plot
 plt <- ggplot(data = emm, aes(x = group, y = emm)) +
-  geom_point(colour = dominant_col) +
-  geom_errorbar(aes(ymin = emm - se, ymax = emm + se), width = .05, col = dominant_col) +
+  geom_errorbar(aes(ymin = emm - 1.96*se, ymax = emm + 1.96*se), width = .05, col = black) +
+  geom_point(colour = dominant_col, size = 2) +
   coord_cartesian(ylim = c(min(df$score_posttest), max(df$score_posttest))) +
-  xlab("Introductory material") + ylab("Adjusted mean learning outcome assessment") +
-  labs(caption = "Error bars represent SE.") +
+  xlab("Introductory material") + ylab("Adjusted means of learning outcome assessment") +
+  labs(caption = "Error bars represent 95% confidence interval.") +
   ambition_theme +
   theme(plot.caption = element_text(hjust=0))
 plt
