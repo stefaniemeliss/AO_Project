@@ -12,3 +12,5 @@ pilots/colour_palette.R
 queries/usermodobjects_export/*
 *.xlsx
 *.xlsm
+*.jpeg
+*.png
